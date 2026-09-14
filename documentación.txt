@@ -1,1 +1,15 @@
-//
+1) ETAPA: ANÁLISIS LÉXICO
+
+- división de trabajo:
+
+- diseño:
+
+. Decidimos hacer que los tokens compuestos de más de 1 caracter sean 100% mayúsculas
+. Decidimos utilizar todos los caracteres de 1 solo símbolo como su propio token (ej token de '*' es '*')
+. Decidimos que el scanner reconozca los números enteros y flotantes
+. Decidimos que los números negativos sean dependencia del parser en lugar de reconocerlos como cadenas
+
+- detalles de implementación:
+
+- problemas conocidos:
+
