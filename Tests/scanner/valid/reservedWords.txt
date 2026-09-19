@@ -1,0 +1,10 @@
+int
+boolean
+float
+void
+if
+else
+while
+return
+true
+false

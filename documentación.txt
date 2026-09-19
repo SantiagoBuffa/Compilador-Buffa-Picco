@@ -1,7 +1,8 @@
 1) ETAPA: ANÁLISIS LÉXICO
 
 - división de trabajo:
-
+100% hecho por Santiago Buffa, revisado y aprobado por Valentino Picco
+(a razón de trabajo asíncrono entre los miembros)
 - diseño:
 
 . Decidimos hacer que los tokens compuestos de más de 1 caracter sean 100% mayúsculas
