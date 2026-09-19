@@ -5,6 +5,7 @@
 %}
 
 %option yylineno
+%x COMMENT /* lex state to check multi-line comments */
 
 digit    [0-9]
 alpha     [a-zA-Z]
@@ -82,7 +83,15 @@ id     {alpha}{alpha_num}*
 /* Comments */
 
 "//".*    ;
-"/*"([^*]|\*+[^*/])*\*+"/" ;
+"/*"            { BEGIN(COMMENT); }
+
+<COMMENT>"*/"   { BEGIN(INITIAL); }
+<COMMENT>\n     ;
+<COMMENT>.      ;
+
+<COMMENT><<EOF>> {
+    printf("Lexic error in line %d: unclosed comment\n", yylineno);
+}
 
 /* Whitespace */
 

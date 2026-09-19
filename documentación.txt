@@ -5,11 +5,23 @@
 - diseño:
 
 . Decidimos hacer que los tokens compuestos de más de 1 caracter sean 100% mayúsculas
-. Decidimos utilizar todos los caracteres de 1 solo símbolo como su propio token (ej token de '*' es '*')
-. Decidimos que el scanner reconozca los números enteros y flotantes
-. Decidimos que los números negativos sean dependencia del parser en lugar de reconocerlos como cadenas
+a modo de convención.
+. Decidimos utilizar todos los caracteres de 1 solo símbolo como su propio token (ej token de '*' es '*').
+esto permite simplificar la definicion de la gramática, utilizando tokens que son unequívocamente los símbolos que representan.
+. Decidimos que el scanner reconozca los números enteros y flotantes, ya que sus estructuras pueden determinarse
+mediante expresiones regulares. De esta manera, el parser recibe ambos tipos como tokens diferenciados.
+. Decidimos que los números negativos sean dependencia del parser en lugar de reconocerlos como cadenas,
+simplemente tomando el '-' como operador unario y para respetar la regla <expr> -> - <expr> de l gramática
+. Decidimos que los comentarios de múltiples lineas sean implementados por los estados de lex.
+. Definimos las palabras reservadas mediante reglas específicas antes de la regla general de identificadores.
+esto hace que las palabras reservadas encajen como palabras reservadas antes que como 
+identificadores, los identificadores del estilo "whiletrue" encajan solamente como identificadores.
 
 - detalles de implementación:
+.Los comentarios /* */ se manejan abriendo un estado interno dentro de lex, que ignora
+todo caracter y salto de linea que haya luego de /*, una vez encuentra */, se reabre el estado
+normal del scanner y retoma su funcionamiento habitual. También permite detectar cuando un comentario
+no fue cerrado apropiadamente.
 
 - problemas conocidos:
 
