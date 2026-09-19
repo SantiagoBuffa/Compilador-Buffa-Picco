@@ -2,10 +2,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "parser.tab.h"
 %}
 
 %option yylineno
-%x COMMENT /* lex state to check multi-line comments */
+%x COMMENT
 
 digit    [0-9]
 alpha     [a-zA-Z]
@@ -17,7 +18,7 @@ id     {alpha}{alpha_num}*
 
 %%
 
-/* Reserved words */
+    /* Reserved words */
 
 "int"    { return INT; }
 "boolean"   { return BOOLEAN; }
@@ -31,7 +32,7 @@ id     {alpha}{alpha_num}*
 "false"   { return FALSE; }
 
 
-/* Arithmetic operators */
+    /* Arithmetic operators */
 
 "+"   { return '+'; }
 "*"   { return '*'; }
@@ -39,19 +40,19 @@ id     {alpha}{alpha_num}*
 "/"   { return '/'; }
 "%"   { return '%'; }
 
-/* Logical operators */
+    /* Logical operators */
 
 "&&"   { return AND; }
 "||"   { return OR; }
 "!"    { return NOT; }
 
-/* Comparative operators */
+    /* Comparative operators */
 
 "<"    { return '<'; }
 ">"    { return '>'; }
 "=="   { return EQUALS;}
 
-/* Delimiters */
+    /* Delimiters */
 
 ";"   { return ';'; }
 "("   { return '('; }
@@ -59,12 +60,12 @@ id     {alpha}{alpha_num}*
 "}"   { return '}'; }
 "{"   { return '{'; }
 
-/* Other simbols */
+    /* Other simbols */
 
 "="   { return '='; }
 ","   { return ','; }
 
-/* ID and literals */
+    /* ID and literals */
 
 {id}       { yylval.text = strdup(yytext); return ID; }
 {int_literal} {
@@ -80,7 +81,7 @@ id     {alpha}{alpha_num}*
 }
 {float_literal}     { yylval.text = strdup(yytext); return FLOAT_LITERAL; }
 
-/* Comments */
+    /* Comments */
 
 "//".*    ;
 "/*"            { BEGIN(COMMENT); }
@@ -93,7 +94,7 @@ id     {alpha}{alpha_num}*
     printf("Lexic error in line %d: unclosed comment\n", yylineno);
 }
 
-/* Whitespace */
+    /* Whitespace */
 
 [ \t\n]+      ; /* Ignores empty spaces and line jumps */
 . {
