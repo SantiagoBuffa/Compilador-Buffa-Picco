@@ -26,3 +26,35 @@ no fue cerrado apropiadamente.
 
 - problemas conocidos:
 
+
+1) ETAPA: ANÁLISIS SINTÁCTICO
+
+-división de trabajo:
+-diseño:
+
+.La precedencia de los operadores y las reglas de la gramática fueron hechas siguiendo 
+la consigna.
+.Asumimos que la lista de var_decl de la sintáxis del lenguaje posee las ID separadas
+por coma (ej int x,y,z;) en vez de como figura int x y z,;
+.Asumimos que los ciclos while van entre paréntesis (while(){}) ya que la gramática no 
+los contenía y asumimos que era un error.
+.Decidimos no complicar la sintaxis agregando distinción entre los tipos de operadores en las expresiones,
+permitiendo ahorrar un nodo intermedio a la hora de crear el árbol más adelante.
+
+Vale la pena recalcar que la parte final de la gramática no incluye 
+⟨id⟩ → ⟨alpha⟩ ⟨alpha num⟩∗
+⟨alpha num⟩ → ⟨alpha⟩ | ⟨digit⟩ |
+⟨alpha⟩ → a | b | ... | z | A | B | ... | Z
+⟨digit⟩ → 0 | 1 | 2 | ... | 9
+⟨int literal⟩ → ⟨digit⟩ ⟨digit⟩∗
+⟨bool literal⟩ → true | false
+⟨float literal⟩ → ⟨digit⟩ ⟨digit⟩∗. ⟨digit⟩ ⟨digit⟩∗
+
+ya que ya fue desarrollada sobre el scanner y los tokens son obtenidos directamente desde ahí
+
+-detalles de implementación:
+
+Para la implementación de el símbolo '-' para expresiones negativas utilizamos un token auxiliar,
+al cual le dimos precedencia alta para permitir diferenciarlo del '-' cuando se trata de una resta.
+
+-problemas conocidos:

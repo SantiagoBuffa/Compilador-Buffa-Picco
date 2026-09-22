@@ -23,49 +23,28 @@ extern int yylineno;
 %token <text> ID INT_LITERAL FLOAT_LITERAL
 
 /* Operator Precedence and Associativity */
+/* Less to more precedence */
 %left OR
 %left AND
 %left EQUALS '<' '>'
 %left '+' '-'
 %left '*' '/' '%'
-%right NOT UMINUS
+%right NOT UMINUS /* auxiliar, allows us to make a distinction for the 
+treatment of minus when used in a single number */
 
 %%
 
 /* Grammar rules */
 
 program:
-      declarations
+      var_decl_list method_decl_list
     ;
 
-declarations:
-      /* empty */
-    | declarations declaration
-    ;
-
-declaration:
-      type ID decl_tail
-    | VOID ID method_tail
-    ;
-
-decl_tail:
-      ',' id_list ';'
-    | ';'
-    | method_tail
-    ;
-
-method_tail:
-      '(' params_opt ')' block
-    ;
-
-id_list:
-      ID
-    | id_list ',' ID
-    ;
+/* Variables */
 
 var_decl_list:
-      /* empty */
-    | var_decl_list var_decl
+    var_decl_list var_decl
+    | 
     ;
 
 var_decl:
@@ -73,37 +52,56 @@ var_decl:
     ;
 
 id_list_tail:
-      /* empty */
-    | id_list_tail ',' ID
+    id_list_tail ',' ID
+    | 
     ;
 
-params_opt:
-      /* empty */
-    | param_list
+/* Methods */
+
+method_decl_list:
+    method_decl_list method_decl
+    |
     ;
+
+method_decl:
+      type ID '(' param_list ')' block
+    | VOID ID '(' param_list ')' block
+    ;
+
 
 param_list:
       param
     | param_list ',' param
     ;
 
+param_list_opt:
+    param_list
+    |
+    ; /* Allows for no parameters in declaration */
+
 param:
       type ID
     ;
 
-block:
-      '{' var_decl_list statement_list '}'
-    ;
-
-statement_list:
-      /* empty */
-    | statement_list statement
-    ;
+/* Types */
 
 type:
       INT
     | BOOLEAN
     | FLOAT
+    ;
+
+/* Blocks */
+
+block:
+      '{' var_decl_list statement_list '}'
+    ;
+
+/* Statements */
+
+statement_list:
+    statement_list statement
+    | 
     ;
 
 statement:
@@ -118,8 +116,8 @@ statement:
     ;
 
 expr_opt:
-      /* empty */
-    | expr
+    expr
+    | 
     ;
 
 method_call:
@@ -127,14 +125,16 @@ method_call:
     ;
 
 args_opt:
-      /* empty */
-    | arg_list
+    arg_list
+    | 
     ;
 
 arg_list:
       expr
     | arg_list ',' expr
     ;
+
+/* Expressions */
 
 expr:
       ID
@@ -150,7 +150,7 @@ expr:
     | expr EQUALS expr
     | expr AND expr
     | expr OR expr
-    | '-' expr %prec UMINUS
+    | '-' expr %prec UMINUS /* %prec allows to override the normal precedence of '-' for this one rule */
     | NOT expr
     | '(' expr ')'
     ;
