@@ -92,7 +92,7 @@ id     {alpha}{alpha_num}*
 
 <COMMENT><<EOF>> {
     printf("Lexic error in line %d: unclosed comment\n", yylineno);
-    return 256;
+    return 0;
 }
 
     /* Whitespace */

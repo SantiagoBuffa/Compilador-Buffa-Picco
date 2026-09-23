@@ -1020,7 +1020,7 @@ case YY_STATE_EOF(COMMENT):
 #line 94 "scanner.lex"
 {
     printf("Lexic error in line %d: unclosed comment\n", yylineno);
-    return 256;
+    return 0;
 }
 	YY_BREAK
 /* Whitespace */
