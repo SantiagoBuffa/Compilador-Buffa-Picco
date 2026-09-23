@@ -92,7 +92,7 @@ id     {alpha}{alpha_num}*
 
 <COMMENT><<EOF>> {
     printf("Lexic error in line %d: unclosed comment\n", yylineno);
-    yyterminate();
+    return 256;
 }
 
     /* Whitespace */
@@ -101,5 +101,6 @@ id     {alpha}{alpha_num}*
 . {
     printf("Lexic error in line %d: Unrecognized symbol '%s'\n",
            yylineno, yytext);
+    return 256;
 }
 %%

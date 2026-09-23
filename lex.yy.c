@@ -1020,7 +1020,7 @@ case YY_STATE_EOF(COMMENT):
 #line 94 "scanner.lex"
 {
     printf("Lexic error in line %d: unclosed comment\n", yylineno);
-    yyterminate();
+    return 256;
 }
 	YY_BREAK
 /* Whitespace */
@@ -1036,14 +1036,15 @@ YY_RULE_SETUP
 {
     printf("Lexic error in line %d: Unrecognized symbol '%s'\n",
            yylineno, yytext);
+    return 256;
 }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 106 "scanner.lex"
+#line 107 "scanner.lex"
 ECHO;
 	YY_BREAK
-#line 1046 "lex.yy.c"
+#line 1047 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2060,6 +2061,6 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 106 "scanner.lex"
+#line 107 "scanner.lex"
 
 
