@@ -37,7 +37,13 @@ treatment of minus when used in a single number */
 /* Grammar rules */
 
 program:
-      var_decl_list method_decl_list
+    declarations
+    ;
+
+declarations:
+    var_decl declarations
+    | method_decl method_decl_list
+    |
     ;
 
 /* Variables */
@@ -64,8 +70,8 @@ method_decl_list:
     ;
 
 method_decl:
-      type ID '(' param_list ')' block
-    | VOID ID '(' param_list ')' block
+      type ID '(' param_list_opt ')' block
+    | VOID ID '(' param_list_opt ')' block
     ;
 
 

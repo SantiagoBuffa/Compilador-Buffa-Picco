@@ -4,7 +4,7 @@
 cd "$(dirname "$0")/../.."
 
 echo "==============================="
-echo "       SCANNER TESTS           "
+echo "       PARSER TESTS            "
 echo "==============================="
 
 # Compilar
@@ -18,23 +18,23 @@ pass=0
 fail=0
 
 echo -e "\n--- Tests Válidos ---"
-for file in Tests/scanner/valid/*; do
+for file in Tests/parser/valid/*; do
     if [ ! -f "$file" ]; then continue; fi
     out=$(./compilador_test "$file" 2>&1)
-    if echo "$out" | grep -q "Lexic error"; then
-        echo -e "[\e[31mFAIL\e[0m] $file"
-        fail=$((fail+1))
-    else
+    if echo "$out" | grep -q "Parseo exitoso"; then
         echo -e "[\e[32mPASS\e[0m] $file"
         pass=$((pass+1))
+    else
+        echo -e "[\e[31mFAIL\e[0m] $file"
+        fail=$((fail+1))
     fi
 done
 
 echo -e "\n--- Tests Inválidos ---"
-for file in Tests/scanner/invalid/*; do
+for file in Tests/parser/invalid/*; do
     if [ ! -f "$file" ]; then continue; fi
     out=$(./compilador_test "$file" 2>&1)
-    if echo "$out" | grep -q "Lexic error"; then
+    if echo "$out" | grep -q "Error en la línea"; then
         echo -e "[\e[32mPASS\e[0m] $file"
         pass=$((pass+1))
     else
@@ -43,5 +43,5 @@ for file in Tests/scanner/invalid/*; do
     fi
 done
 
-echo -e "\nScanner Total: $pass PASSED, $fail FAILED\n"
+echo -e "\nParser Total: $pass PASSED, $fail FAILED\n"
 exit $fail
