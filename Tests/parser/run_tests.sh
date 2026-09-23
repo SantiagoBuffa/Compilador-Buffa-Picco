@@ -26,6 +26,7 @@ for file in Tests/parser/valid/*; do
         pass=$((pass+1))
     else
         echo -e "[\e[31mFAIL\e[0m] $file"
+        echo -e "       \e[33mDetalle: $(echo "$out" | grep -E 'Error|Lexic error' | head -n 1)\e[0m"
         fail=$((fail+1))
     fi
 done
@@ -34,11 +35,12 @@ echo -e "\n--- Tests Inválidos ---"
 for file in Tests/parser/invalid/*; do
     if [ ! -f "$file" ]; then continue; fi
     out=$(./compilador_test "$file" 2>&1)
-    if echo "$out" | grep -q "Error en la línea"; then
+    if echo "$out" | grep -E -q "Error en la línea|Lexic error"; then
         echo -e "[\e[32mPASS\e[0m] $file"
         pass=$((pass+1))
     else
         echo -e "[\e[31mFAIL\e[0m] $file"
+        echo -e "       \e[33mDetalle: El parser reportó 'Parseo exitoso' en un archivo inválido.\e[0m"
         fail=$((fail+1))
     fi
 done

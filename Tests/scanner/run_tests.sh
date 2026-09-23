@@ -23,6 +23,7 @@ for file in Tests/scanner/valid/*; do
     out=$(./compilador_test "$file" 2>&1)
     if echo "$out" | grep -q "Lexic error"; then
         echo -e "[\e[31mFAIL\e[0m] $file"
+        echo -e "       \e[33mDetalle: $(echo "$out" | grep -E 'Lexic error|Error' | head -n 1)\e[0m"
         fail=$((fail+1))
     else
         echo -e "[\e[32mPASS\e[0m] $file"
@@ -39,6 +40,7 @@ for file in Tests/scanner/invalid/*; do
         pass=$((pass+1))
     else
         echo -e "[\e[31mFAIL\e[0m] $file"
+        echo -e "       \e[33mDetalle: El scanner no reportó ningún 'Lexic error' para este archivo inválido.\e[0m"
         fail=$((fail+1))
     fi
 done
