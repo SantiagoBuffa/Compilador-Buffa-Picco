@@ -1,0 +1,7 @@
+void main() {
+    int a, b;
+    boolean c, d;
+    a = 1 + 2 - 3 * 4 / 5 % 6;
+    c = true && false || !true;
+    d = (a < b) || (a > b) || (a == b);
+}

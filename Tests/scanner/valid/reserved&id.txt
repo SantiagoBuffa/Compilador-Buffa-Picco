@@ -1,6 +1,0 @@
-intx
-float123
-returnValue
-falsex
-truetrues
-whiletrue

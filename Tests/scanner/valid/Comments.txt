@@ -1,8 +1,0 @@
-// comentario
-int x;
-/* hola mundo 
-hola mundo  
-   hola mundo 
-   */
-int y;
-/* holamundo */

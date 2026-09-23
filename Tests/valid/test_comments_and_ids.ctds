@@ -1,0 +1,11 @@
+// Single line comment
+void main() {
+    int var_1;
+    float Var_2;
+    boolean validId;
+    /*
+      Multi line comment
+      can have // anything inside
+    */
+    var_1 = 1;
+}
