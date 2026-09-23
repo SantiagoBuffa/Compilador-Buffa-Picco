@@ -18,6 +18,7 @@ simplemente tomando el '-' como operador unario y para respetar la regla <expr> 
 esto hace que las palabras reservadas encajen como palabras reservadas antes que como 
 identificadores, los identificadores del estilo "whiletrue" encajan solamente como identificadores.
 
+
 - detalles de implementación:
 .Los comentarios /* */ se manejan abriendo un estado interno dentro de lex, que ignora
 todo caracter y salto de linea que haya luego de /*, una vez encuentra */, se reabre el estado
@@ -54,7 +55,7 @@ ya que ya fue desarrollada sobre el scanner y los tokens son obtenidos directame
 
 -detalles de implementación:
 
-Para la implementación de el símbolo '-' para expresiones negativas utilizamos un token auxiliar,
+Para la implementación del símbolo '-' para expresiones negativas utilizamos un token auxiliar,
 al cual le dimos precedencia alta para permitir diferenciarlo del '-' cuando se trata de una resta.
 
 -problemas conocidos:
