@@ -1,0 +1,4 @@
+int x;
+
+/*
+   comentario que nunca termina
