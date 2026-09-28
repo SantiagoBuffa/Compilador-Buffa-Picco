@@ -2,44 +2,44 @@
 #define ESTRUCTURAS_H
 
 typedef enum {
-    NODO_PROGRAMA,
+    PROGRAM_NODE,
 
-    NODO_VAR_DECL,
-    NODO_METODO,
-    NODO_PARAMETRO,
-    NODO_BLOQUE,
+    VAR_DECL_NODE,
+    METHOD_NODE,
+    PARAMETER_NODE,
+    BLOCK_NODE,
 
-    NODO_ASIGNACION,
-    NODO_IF,
-    NODO_WHILE,
-    NODO_RETURN,
-    NODO_LLAMADA,
+    ASSIGNMENT_NODE,
+    IF_NODE,
+    WHILE_NODE,
+    RETURN_NODE,
+    CALL_NODE,
 
-    NODO_OPERACION,
-    NODO_ID,
-    NODO_LITERAL
-} TipoNodo;
+    OPERATION_NODE,
+    ID_NODE,
+    LITERAL_NODE
+} NodeType;
 
 
-typedef struct Nodo {
-    TipoNodo tipo;
-    char *valor;
+typedef struct Node {
+    NodeType type;
+    char *value;
 
-    struct Nodo **hijos;
-    int cantidad_hijos;
-} Nodo;
+    struct Node **children;
+    int child_count;
+} Node;
 
 
 /* Crear un nodo sin hijos */
-Nodo *crearNodo(TipoNodo tipo, char *valor);
+Node *createNode(NodeType type, char *value);
 
 /* Agregar un hijo */
-void agregarHijo(Nodo *padre, Nodo *hijo);
+void addChild(Node *parent, Node *child);
 
 /* Mostrar el árbol */
-void imprimirArbol(Nodo *raiz);
+void printTree(Node *root);
 
 /* Liberar memoria */
-void liberarArbol(Nodo *raiz);
+void freeTree(Node *root);
 
 #endif

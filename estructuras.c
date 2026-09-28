@@ -5,111 +5,111 @@
 #include "estructuras.h"
 
 
-Nodo *crearNodo(TipoNodo tipo, char *valor) {
+Node *createNode(NodeType type, char *value) {
 
-    Nodo *nodo = malloc(sizeof(Nodo));
+    Node *node = malloc(sizeof(Node));
 
-    if (nodo == NULL) {
-        fprintf(stderr, "Error: no se pudo reservar memoria\n");
+    if (node == NULL) {
+        fprintf(stderr, "Error: couldn't allocate memory (tree)\n");
         exit(EXIT_FAILURE);
     }
 
-    nodo->tipo = tipo;
+    node->type = type;
 
-    if (valor != NULL) {
-        nodo->valor = strdup(valor);
+    if (value != NULL) {
+        node->value = strdup(value);
     } else {
-        nodo->valor = NULL;
+        node->value = NULL;
     }
 
-    nodo->hijos = NULL;
-    nodo->cantidad_hijos = 0;
+    node->children = NULL;
+    node->child_count = 0;
 
-    return nodo;
+    return node;
 }
 
 
-void agregarHijo(Nodo *padre, Nodo *hijo) {
+void addChild(Node *parent, Node *child) {
 
-    if (padre == NULL || hijo == NULL)
+    if (parent == NULL || child == NULL)
         return;
 
-    padre->hijos = realloc(
-        padre->hijos,
-        (padre->cantidad_hijos + 1) * sizeof(Nodo *)
+    parent->children = realloc(
+        parent->children,
+        (parent->child_count + 1) * sizeof(Node *)
     );
 
-    if (padre->hijos == NULL) {
-        fprintf(stderr, "Error: no se pudo reservar memoria\n");
+    if (parent->children == NULL) {
+        fprintf(stderr, "Error: couldn't allocate memory (tree)\n");
         exit(EXIT_FAILURE);
     }
 
-    padre->hijos[padre->cantidad_hijos] = hijo;
-    padre->cantidad_hijos++;
+    parent->children[parent->child_count] = child;
+    parent->child_count++;
 }
 
 
-const char *nombreTipo(TipoNodo tipo) {
+const char *TypeName(NodeType type) {
 
-    switch (tipo) {
+    switch (type) {
 
-        case NODO_PROGRAMA:    return "PROGRAMA";
-        case NODO_VAR_DECL:    return "VAR_DECL";
-        case NODO_METODO:      return "METODO";
-        case NODO_PARAMETRO:   return "PARAMETRO";
-        case NODO_BLOQUE:      return "BLOQUE";
+        case PROGRAM_NODE:    return "PROGRAM";
+        case VAR_DECL_NODE:    return "VAR_DECL";
+        case METHOD_NODE:      return "METHOD";
+        case PARAMETER_NODE:   return "PARAMETER";
+        case BLOCK_NODE:      return "BLOCK";
 
-        case NODO_ASIGNACION:  return "ASIGNACION";
-        case NODO_IF:          return "IF";
-        case NODO_WHILE:       return "WHILE";
-        case NODO_RETURN:      return "RETURN";
-        case NODO_LLAMADA:     return "LLAMADA";
+        case ASSIGNMENT_NODE:  return "ASSIGNMENT";
+        case IF_NODE:          return "IF";
+        case WHILE_NODE:       return "WHILE";
+        case RETURN_NODE:      return "RETURN";
+        case CALL_NODE:     return "CALL";
 
-        case NODO_OPERACION:   return "OPERACION";
-        case NODO_ID:          return "ID";
-        case NODO_LITERAL:     return "LITERAL";
+        case OPERATION_NODE:   return "OPERATION";
+        case ID_NODE:          return "ID";
+        case LITERAL_NODE:     return "LITERAL";
 
-        default:               return "DESCONOCIDO";
+        default:               return "UNKNOWN";
     }
 }
 
 
-void imprimirArbolRec(Nodo *nodo, int nivel) {
+void printASTrec(Node *node, int level) {
 
-    if (nodo == NULL)
+    if (node == NULL)
         return;
 
-    for (int i = 0; i < nivel; i++)
+    for (int i = 0; i < level; i++)
         printf("  ");
 
-    printf("%s", nombreTipo(nodo->tipo));
+    printf("%s", TypeName(node->type));
 
-    if (nodo->valor != NULL)
-        printf(" (%s)", nodo->valor);
+    if (node->value != NULL)
+        printf(" (%s)", node->value);
 
     printf("\n");
 
-    for (int i = 0; i < nodo->cantidad_hijos; i++) {
-        imprimirArbolRec(nodo->hijos[i], nivel + 1);
+    for (int i = 0; i < node->child_count; i++) {
+        printASTrec(node->children[i], level + 1);
     }
 }
 
 
-void imprimirArbol(Nodo *raiz) {
-    imprimirArbolRec(raiz, 0);
+void printAST(Node *root) {
+    printASTrec(root, 0);
 }
 
 
-void liberarArbol(Nodo *raiz) {
+void freeAST(Node *root) {
 
-    if (raiz == NULL)
+    if (root == NULL)
         return;
 
-    for (int i = 0; i < raiz->cantidad_hijos; i++) {
-        liberarArbol(raiz->hijos[i]);
+    for (int i = 0; i < root->child_count; i++) {
+        freeAST(root->children[i]);
     }
 
-    free(raiz->hijos);
-    free(raiz->valor);
-    free(raiz);
+    free(root->children);
+    free(root->value);
+    free(root);
 }
