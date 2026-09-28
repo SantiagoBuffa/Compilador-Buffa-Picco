@@ -1,0 +1,129 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "symtab.h"
+
+// Scope stack node structure
+typedef struct ScopeNode {
+    Symbol* symbols;         // Linked list of symbols in this scope
+    struct ScopeNode* prev;  // Pointer to previous scope (down the stack)
+} ScopeNode;
+
+// Pointer to top of stack (current scope)
+static ScopeNode* top_scope = NULL;
+
+void symtab_init() {
+    // Clean up any existing scopes to avoid basic memory leaks
+    while (top_scope != NULL) {
+        symtab_exit_scope();
+    }
+    // Create global scope
+    symtab_enter_scope();
+}
+
+void symtab_enter_scope() {
+    ScopeNode* new_scope = (ScopeNode*)malloc(sizeof(ScopeNode));
+    if (new_scope == NULL) {
+        fprintf(stderr, "Error: couldn't allocate memory for scope\n");
+        exit(EXIT_FAILURE);
+    }
+    new_scope->symbols = NULL;
+    new_scope->prev = top_scope;
+    top_scope = new_scope;
+}
+
+void symtab_exit_scope() {
+    if (top_scope == NULL) return;
+    
+    // NOTE: We do NOT free Symbol* because the AST will need them
+    // during the code generation phase. We simply discard the scope node
+    // so they are no longer visible in future lookups by name.
+    
+    ScopeNode* old_scope = top_scope;
+    top_scope = top_scope->prev;
+    free(old_scope);
+}
+
+Symbol* symtab_insert(char* name, DataType type, SymbolKind kind) {
+    if (top_scope == NULL) {
+        symtab_init();
+    }
+
+    // Check if symbol already exists in THE SAME scope (Semantic rule: no redeclarations in same block)
+    Symbol* current = top_scope->symbols;
+    while (current != NULL) {
+        if (strcmp(current->name, name) == 0) {
+            return NULL; // Already exists in this scope
+        }
+        current = current->next;
+    }
+
+    // Does not exist in this scope, create it
+    Symbol* new_symbol = (Symbol*)malloc(sizeof(Symbol));
+    if (new_symbol == NULL) {
+        fprintf(stderr, "Error: couldn't allocate memory for symbol\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    new_symbol->name = strdup(name);
+    new_symbol->type = type;
+    new_symbol->kind = kind;
+    new_symbol->params = NULL;
+    
+    // Insert at the front of current scope's list
+    new_symbol->next = top_scope->symbols;
+    top_scope->symbols = new_symbol;
+    
+    return new_symbol;
+}
+
+Symbol* symtab_lookup(char* name) {
+    ScopeNode* current_scope = top_scope;
+    
+    // Search from top of stack down to global scope
+    while (current_scope != NULL) {
+        Symbol* current_sym = current_scope->symbols;
+        while (current_sym != NULL) {
+            if (strcmp(current_sym->name, name) == 0) {
+                return current_sym; // Found (handles shadowing automatically)
+            }
+            current_sym = current_sym->next;
+        }
+        current_scope = current_scope->prev;
+    }
+    
+    return NULL; // Not found in any scope
+}
+
+// Helper function to convert type to string (for printing)
+static const char* get_type_name(DataType type) {
+    switch(type) {
+        case TYPE_INT: return "int";
+        case TYPE_FLOAT: return "float";
+        case TYPE_BOOLEAN: return "boolean";
+        case TYPE_VOID: return "void";
+        default: return "unknown";
+    }
+}
+
+// Helper function to print symbol table
+void symtab_print() {
+    printf("=== SYMBOL TABLE ===\n");
+    ScopeNode* current_scope = top_scope;
+    int level = 0;
+    
+    while (current_scope != NULL) {
+        printf("Scope Level %d:\n", level);
+        Symbol* sym = current_scope->symbols;
+        if (sym == NULL) {
+            printf("  (empty)\n");
+        }
+        while (sym != NULL) {
+            printf("  - %s (Type: %s)\n", sym->name, get_type_name(sym->type));
+            sym = sym->next;
+        }
+        current_scope = current_scope->prev;
+        level++;
+    }
+    printf("====================\n");
+}

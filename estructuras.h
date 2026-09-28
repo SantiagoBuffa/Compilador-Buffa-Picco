@@ -21,25 +21,29 @@ typedef enum {
 } NodeType;
 
 
+struct Symbol;
+
 typedef struct Node {
     NodeType type;
     char *value;
+    
+    struct Symbol *symbol; // Link to the Symbol Table
 
     struct Node **children;
     int child_count;
 } Node;
 
 
-/* Crear un nodo sin hijos */
+/* Create a node with no children */
 Node *createNode(NodeType type, char *value);
 
-/* Agregar un hijo */
+/* Add a child */
 void addChild(Node *parent, Node *child);
 
-/* Mostrar el árbol */
+/* Print the tree */
 void printTree(Node *root);
 
-/* Liberar memoria */
+/* Free memory */
 void freeTree(Node *root);
 
 #endif

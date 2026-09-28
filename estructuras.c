@@ -21,6 +21,8 @@ Node *createNode(NodeType type, char *value) {
     } else {
         node->value = NULL;
     }
+    
+    node->symbol = NULL;
 
     node->children = NULL;
     node->child_count = 0;
