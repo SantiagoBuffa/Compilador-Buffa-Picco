@@ -87,14 +87,14 @@ declarations:
         addChild($$, $1);
     }
     | method_decl method_decl_list {
-        $$ = createNode(PROGRAM_NODE, NULL);
+        $$ = createNode(DECLARATIONS_NODE, NULL);
         addChild($$, $1);
         for(int i=0; i<$2->child_count; i++) {
             addChild($$, $2->children[i]);
         }
         free($2->children); free($2);
     }
-    | { $$ = createNode(PROGRAM_NODE, NULL); }
+    | { $$ = createNode(DECLARATIONS_NODE, NULL); }
     ;
 
 /* Variables */
@@ -104,7 +104,7 @@ var_decl_list:
         $$ = $1;
         addChild($$, $2);
     }
-    | { $$ = createNode(BLOCK_NODE, "temp_var_decls"); }
+    | { $$ = createNode(VAR_DECL_LIST_NODE, NULL); }
     ;
 
 var_decl:
@@ -133,7 +133,7 @@ method_decl_list:
         $$ = $1;
         addChild($$, $2);
     }
-    | { $$ = createNode(PROGRAM_NODE, "temp_methods"); }
+    | { $$ = createNode(METHOD_DECL_LIST_NODE, NULL); }
     ;
 
 method_decl:
@@ -154,7 +154,7 @@ method_decl:
 
 param_list:
       param {
-          $$ = createNode(PARAMETER_NODE, "list");
+          $$ = createNode(PARAM_LIST_NODE, NULL);
           addChild($$, $1);
       }
     | param_list ',' param {
@@ -165,7 +165,7 @@ param_list:
 
 param_list_opt:
     param_list { $$ = $1; }
-    | { $$ = createNode(PARAMETER_NODE, "list_empty"); }
+    | { $$ = createNode(PARAM_LIST_NODE, "empty"); }
     ;
 
 param:
@@ -188,12 +188,8 @@ type:
 block:
       '{' var_decl_list statement_list '}' {
           $$ = createNode(BLOCK_NODE, NULL);
-          // Add all var decls
-          for(int i=0; i<$2->child_count; i++) addChild($$, $2->children[i]);
-          free($2->children); free($2);
-          // Add all statements
-          for(int i=0; i<$3->child_count; i++) addChild($$, $3->children[i]);
-          free($3->children); free($3);
+          addChild($$, $2);
+          addChild($$, $3);
       }
     ;
 
@@ -202,9 +198,9 @@ block:
 statement_list:
     statement_list statement {
         $$ = $1;
-        if ($2 != NULL) addChild($$, $2); // Ignore empty statements
+        if ($2 != NULL) addChild($$, $2);
     }
-    | { $$ = createNode(BLOCK_NODE, "temp_stmts"); }
+    | { $$ = createNode(STATEMENT_LIST_NODE, NULL); }
     ;
 
 statement:
@@ -249,20 +245,19 @@ method_call:
       ID '(' args_opt ')' {
           $$ = createNode(CALL_NODE, $1);
           if ($3 != NULL) {
-              for(int i=0; i<$3->child_count; i++) addChild($$, $3->children[i]);
-              free($3->children); free($3);
+              addChild($$, $3);
           }
       }
     ;
 
 args_opt:
     arg_list { $$ = $1; }
-    | { $$ = NULL; }
+    | { $$ = createNode(ARG_LIST_NODE, "empty"); }
     ;
 
 arg_list:
       expr {
-          $$ = createNode(CALL_NODE, "args");
+          $$ = createNode(ARG_LIST_NODE, NULL);
           addChild($$, $1);
       }
     | arg_list ',' expr {
@@ -305,7 +300,7 @@ void yyerror(const char *s) {
   fprintf(stderr, "Error en la línea %d: %s\n", yylineno, s); 
 }
 
-void main(int argc, char** argv) {
+int main(int argc, char** argv) {
   symtab_init();
   ++argv, --argc;
   if (argc > 0)
@@ -314,13 +309,14 @@ void main(int argc, char** argv) {
     yyin = stdin;
 
   if (yyparse() == 0) {
-      printf("Succesful.\n\n");
+      printf("Parseo exitoso.\n\n");
       printf("=== AST ===\n");
       printAST(ast_root);
       printf("\n=== SEMANTIC ANALYSIS & SYMTAB ===\n");
       analyze_semantics(ast_root);
       freeAST(ast_root);
   }
+  return 0;
 }
 
 int yywrap(void) {
