@@ -1,0 +1,101 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "semantic.h"
+#include "symtab.h"
+
+static DataType str_to_dtype(const char* str) {
+    if(!str) return TYPE_UNKNOWN;
+    if(strcmp(str, "int") == 0) return TYPE_INT;
+    if(strcmp(str, "float") == 0) return TYPE_FLOAT;
+    if(strcmp(str, "boolean") == 0) return TYPE_BOOLEAN;
+    if(strcmp(str, "void") == 0) return TYPE_VOID;
+    return TYPE_UNKNOWN;
+}
+
+static void traverse(Node* node) {
+    if (!node) return;
+
+    bool is_scope_creator = false;
+
+    // Si es un método o un bloque, creamos un nuevo scope
+    if (node->type == METHOD_NODE || node->type == BLOCK_NODE) {
+        symtab_enter_scope();
+        is_scope_creator = true;
+    }
+
+    // Pre-order processing
+    if (node->type == METHOD_NODE) {
+        // node->value tiene el tipo de retorno
+        // node->children[0] tiene el ID_NODE con el nombre
+        if (node->child_count > 0 && node->children[0]->type == ID_NODE) {
+            char* func_name = node->children[0]->value;
+            DataType ret_type = str_to_dtype(node->value);
+            
+            // Declaramos la función en el scope GLOBAL (esto requeriría insertarlo ANTES de entrar al scope, 
+            // pero como acabamos de entrar, lo insertaremos aquí. Ojo con el shadowing si se invoca recursivamente).
+            // Para simplificar, lo registramos en el scope actual.
+            Symbol* sym = symtab_insert(func_name, ret_type, KIND_FUNC);
+            if (!sym) {
+                fprintf(stderr, "Semantic Error: Function '%s' already declared.\n", func_name);
+            }
+            node->children[0]->symbol = sym;
+        }
+    } 
+    else if (node->type == VAR_DECL_NODE) {
+        DataType var_type = str_to_dtype(node->value);
+        // Todos los hijos de un VAR_DECL_NODE son ID_NODEs (las variables declaradas)
+        for (int i = 0; i < node->child_count; i++) {
+            if (node->children[i]->type == ID_NODE) {
+                char* var_name = node->children[i]->value;
+                Symbol* sym = symtab_insert(var_name, var_type, KIND_VAR);
+                if (!sym) {
+                    fprintf(stderr, "Semantic Error: Variable '%s' already declared in this scope.\n", var_name);
+                }
+                node->children[i]->symbol = sym;
+            }
+        }
+    }
+    else if (node->type == PARAMETER_NODE && strcmp(node->value, "list") != 0 && strcmp(node->value, "list_empty") != 0) {
+        // Es un parámetro individual
+        DataType param_type = str_to_dtype(node->value);
+        if (node->child_count > 0 && node->children[0]->type == ID_NODE) {
+            char* param_name = node->children[0]->value;
+            Symbol* sym = symtab_insert(param_name, param_type, KIND_PARAM);
+            if (!sym) {
+                fprintf(stderr, "Semantic Error: Parameter '%s' already declared.\n", param_name);
+            }
+            node->children[0]->symbol = sym;
+        }
+    }
+    else if (node->type == ID_NODE) {
+        // Uso de una variable (si no es declaración)
+        // Como ya vinculamos las declaraciones arriba, podemos buscar.
+        // Pero ojo: si es una declaración, ya le asignamos símbolo. Si no tiene, es un uso.
+        if (node->symbol == NULL) {
+            Symbol* sym = symtab_lookup(node->value);
+            if (!sym) {
+                fprintf(stderr, "Semantic Error: Identifier '%s' not declared.\n", node->value);
+            } else {
+                node->symbol = sym;
+            }
+        }
+    }
+
+    // Recorremos los hijos
+    for (int i = 0; i < node->child_count; i++) {
+        traverse(node->children[i]);
+    }
+
+    // Post-order processing
+    if (is_scope_creator) {
+        printf("--- Cerrando Scope --- Estado actual de la tabla:\n");
+        symtab_print();
+        symtab_exit_scope();
+    }
+}
+
+void analyze_semantics(Node* root) {
+    // La raíz siempre arranca en el scope global (inicializado en main)
+    traverse(root);
+}

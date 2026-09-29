@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "symtab.h"
 #include "parser.tab.h"
 %}
 

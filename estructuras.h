@@ -50,9 +50,9 @@ Node *createNode(NodeType type, char *value);
 void addChild(Node *parent, Node *child);
 
 /* Print the tree */
-void printTree(Node *root);
+void printAST(Node *root);
 
 /* Free memory */
-void freeTree(Node *root);
+void freeAST(Node *root);
 
 #endif
