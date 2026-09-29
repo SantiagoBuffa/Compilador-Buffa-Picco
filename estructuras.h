@@ -10,6 +10,7 @@ typedef enum {
     PARAM_LIST_NODE,
     STATEMENT_LIST_NODE,
     ARG_LIST_NODE,
+    ID_LIST_NODE,
 
     
     VAR_DECL_NODE,

@@ -99,6 +99,7 @@ declarations:
 
 /* Variables */
 
+
 var_decl_list:
     var_decl_list var_decl {
         $$ = $1;
@@ -118,16 +119,18 @@ var_decl:
       }
     ;
 
+
 id_list_tail:
     id_list_tail ',' ID {
         $$ = $1;
         addChild($$, createNode(ID_NODE, $3));
     }
-    | { $$ = createNode(ID_NODE, "temp_ids"); }
+    | { $$ = createNode(ID_LIST_NODE, NULL); }
     ;
 
 /* Methods */
 
+// consultar
 method_decl_list:
     method_decl_list method_decl {
         $$ = $1;

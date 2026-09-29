@@ -75,6 +75,7 @@ const char *typeName(NodeType type) {
         case PARAM_LIST_NODE:       return "PARAM_LIST";
         case STATEMENT_LIST_NODE:   return "STATEMENT_LIST";
         case ARG_LIST_NODE:         return "ARG_LIST";
+        case ID_LIST_NODE:          return "ID_LIST";
 
         case ASSIGNMENT_NODE:  return "ASSIGNMENT";
         case IF_NODE:          return "IF";
