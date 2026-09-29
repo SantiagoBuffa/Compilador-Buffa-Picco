@@ -65,3 +65,27 @@ Para la implementación del símbolo '-' para expresiones negativas utilizamos u
 al cual le dimos precedencia alta para permitir diferenciarlo del '-' cuando se trata de una resta.
 
 -problemas conocidos:
+
+
+2) ETAPA: ÁRBOL SINTÁCTICO
+- división de trabajo: 
+100% realizada por Santiago Buffa
+
+- diseño:
+
+. Decidimos emplear un nombre de nodo para cada "símbolo" que utilizamos en las reglas de la gramática,
+a forma de simplificar el análisis del árbol y que sea más ameno a la vista, agregando más tipos de nodo.
+. Decidimos diseñar el árbol con nodos con n cantidad de hijos, lo cual permite manejar los casos donde un nodo
+va a tener más de 2 hijos, por ejemplo la llamada a métodos y la declaración de las variables.
+
+- detalles de implementación: los hijos de un nodo se implementan utilizando una estructura de lista,
+donde cada hijo tiene una posición [i]. Almacenar un hijo nuevo en un nodo aplica una realocación de memoria
+de forma dinámica.
+- problemas conocidos:
+
+2) ETAPA: TABLA DE símbolos
+
+- división de trabajo:
+- diseño:
+- detalles de implementación:
+- problemas conocidos:
