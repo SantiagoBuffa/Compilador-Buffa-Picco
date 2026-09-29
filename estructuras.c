@@ -33,25 +33,33 @@ Node *createNode(NodeType type, char *value) {
 
 void addChild(Node *parent, Node *child) {
 
-    if (parent == NULL || child == NULL)
+    if (parent == NULL) {
+        fprintf(stderr, "Error: trying to add child to NULL parent\n");
         return;
+    }
 
-    parent->children = realloc(
+    if (child == NULL) {
+        fprintf(stderr, "Error: trying to add NULL child\n");
+        return;
+    }
+    Node **new_children = realloc(
         parent->children,
         (parent->child_count + 1) * sizeof(Node *)
     );
 
-    if (parent->children == NULL) {
+    if (new_children == NULL) {
         fprintf(stderr, "Error: couldn't allocate memory (tree)\n");
         exit(EXIT_FAILURE);
     }
+
+    parent->children = new_children;
 
     parent->children[parent->child_count] = child;
     parent->child_count++;
 }
 
 
-const char *TypeName(NodeType type) {
+const char *typeName(NodeType type) {
 
     switch (type) {
 
@@ -60,6 +68,13 @@ const char *TypeName(NodeType type) {
         case METHOD_NODE:      return "METHOD";
         case PARAMETER_NODE:   return "PARAMETER";
         case BLOCK_NODE:      return "BLOCK";
+
+        case DECLARATIONS_NODE:     return "DECLARATIONS";
+        case VAR_DECL_LIST_NODE:    return "VAR_DECL_LIST";
+        case METHOD_DECL_LIST_NODE: return "METHOD_DECL_LIST";
+        case PARAM_LIST_NODE:       return "PARAM_LIST";
+        case STATEMENT_LIST_NODE:   return "STATEMENT_LIST";
+        case ARG_LIST_NODE:         return "ARG_LIST";
 
         case ASSIGNMENT_NODE:  return "ASSIGNMENT";
         case IF_NODE:          return "IF";
@@ -84,7 +99,7 @@ void printASTrec(Node *node, int level) {
     for (int i = 0; i < level; i++)
         printf("  ");
 
-    printf("%s", TypeName(node->type));
+    printf("%s", typeName(node->type));
 
     if (node->value != NULL)
         printf(" (%s)", node->value);

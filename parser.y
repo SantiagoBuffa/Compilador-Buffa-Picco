@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "estructuras.h"
+#include "symtab.h"
+
 extern FILE *yyin;
 int yylex(void);
 void yyerror(const char *s);
@@ -11,6 +14,8 @@ extern int yylineno;
 
 %union {
     char *text;
+    Node *node;
+    DataType data_type;
 }
 
 %define parse.error verbose
@@ -31,6 +36,19 @@ extern int yylineno;
 %left '*' '/' '%'
 %right NOT UMINUS /* auxiliar, allows us to make a distinction for the 
 treatment of minus when used in a single number */
+
+/* Rule declarations */
+%type <node> program
+%type <node> declarations
+%type <node> var_decl
+%type <node> block
+%type <node> statement
+%type <node> statement_list
+%type <node> expr
+%type <node> literal
+%type <node> method_call
+
+%type <data_type> type
 
 %%
 
@@ -175,6 +193,7 @@ void yyerror(const char *s) {
 }
 
 void main(int argc, char** argv) {
+  symtab_init();
   ++argv, --argc;
   if (argc > 0)
     yyin = fopen(argv[0], "r");
