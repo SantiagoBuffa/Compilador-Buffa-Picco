@@ -131,7 +131,7 @@ id_list_tail:
 
 /* Methods */
 
-// consultar
+
 method_decl_list:
     method_decl_list method_decl {
         $$ = $1;

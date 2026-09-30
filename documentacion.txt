@@ -69,7 +69,7 @@ al cual le dimos precedencia alta para permitir diferenciarlo del '-' cuando se 
 
 2) ETAPA: ÁRBOL SINTÁCTICO
 - división de trabajo: 
-100% realizada por Santiago Buffa
+100% realizada por Santiago Buffa, autorizada y testeada por Valentino Picco
 
 - diseño:
 
@@ -124,6 +124,8 @@ el seguimiento de la tabla de símbolos y análisis semántico se realizará sob
 2) ETAPA: TABLA DE símbolos
 
 - división de trabajo:
+100% realizada por valentino picco, revisada y autorizada por Santiago Buffa
+
 - diseño:
 
 . Decidimos implementar la tabla de símbolos utilizando una pila de entornos (scopes), ya que el lenguaje permite
