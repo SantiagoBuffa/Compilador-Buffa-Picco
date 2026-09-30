@@ -45,6 +45,8 @@ Node *createNode(NodeType type, char *value);
 
 void addChild(Node *parent, Node *child);
 
+void prependChild(Node *parent, Node *child);
+
 void printAST(Node *root);
 
 void freeAST(Node *root);
