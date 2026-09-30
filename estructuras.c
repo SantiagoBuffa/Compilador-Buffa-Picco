@@ -4,7 +4,7 @@
 
 #include "estructuras.h"
 
-
+// creates a new Node for the AST. all initialized to null by default.
 Node *createNode(NodeType type, char *value) {
 
     Node *node = malloc(sizeof(Node));
@@ -30,7 +30,7 @@ Node *createNode(NodeType type, char *value) {
     return node;
 }
 
-
+// add child to parent node. reallocates memory for the children array.
 void addChild(Node *parent, Node *child) {
 
     if (parent == NULL) {
@@ -58,6 +58,7 @@ void addChild(Node *parent, Node *child) {
     parent->child_count++;
 }
 
+// adds a child to the beginning of the parent's children array.
 void prependChild(Node *parent, Node *child) {
     if (parent == NULL) {
         fprintf(stderr, "Error: trying to prepend child to NULL parent\n");
@@ -83,6 +84,7 @@ void prependChild(Node *parent, Node *child) {
     parent->child_count++;
 }
 
+// auxiliary function to get the name of a node type as a string. useful for printing the AST.
 const char *typeName(NodeType type) {
 
     switch (type) {
@@ -115,7 +117,7 @@ const char *typeName(NodeType type) {
     }
 }
 
-
+// recursive function to print the AST with indentation based on the level of the node.
 void printASTrec(Node *node, int level) {
 
     if (node == NULL)
@@ -141,7 +143,7 @@ void printAST(Node *root) {
     printASTrec(root, 0);
 }
 
-
+// recursive function to free the AST. frees the children first, then the node itself.
 void freeAST(Node *root) {
 
     if (root == NULL)
