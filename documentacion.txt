@@ -73,19 +73,87 @@ al cual le dimos precedencia alta para permitir diferenciarlo del '-' cuando se 
 
 - diseño:
 
-. Decidimos emplear un nombre de nodo para cada "símbolo" que utilizamos en las reglas de la gramática,
-a forma de simplificar el análisis del árbol y que sea más ameno a la vista, agregando más tipos de nodo.
-. Decidimos diseñar el árbol con nodos con n cantidad de hijos, lo cual permite manejar los casos donde un nodo
-va a tener más de 2 hijos, por ejemplo la llamada a métodos y la declaración de las variables.
+. Se decidió emplear un tipo de nodo específico para cada elemento relevante de la gramática, 
+incluyendo nodos correspondientes a las declaraciones, métodos, parámetros, bloques, sentencias, expresiones y diferentes tipos de listas.
 
-- detalles de implementación: los hijos de un nodo se implementan utilizando una estructura de lista,
+Esta decisión permite representar explícitamente la estructura sintáctica del programa y facilita el recorrido
+y análisis posterior del árbol, particularmente durante el análisis semántico.
+
+. Decidimos diseñar el árbol con nodos con n cantidad de hijos, lo cual permite manejar los casos donde un nodo
+va a tener más de 2 hijos, por ejemplo la llamada a métodos, declaración de variables y estructuras de control.
+
+. Los principales tipos de nodos implementados son:
+
+PROGRAM: raíz del árbol.
+DECLARATIONS: declaraciones globales y métodos.
+VAR_DECL: declaración de variables.
+VAR_DECL_LIST: lista de declaraciones locales.
+METHOD: declaración de un método.
+METHOD_DECL_LIST: lista de métodos.
+PARAMETER: parámetro de un método.
+PARAM_LIST: lista de parámetros.
+BLOCK: bloque de sentencias.
+STATEMENT_LIST: lista de sentencias.
+ASSIGNMENT: asignación.
+IF: estructura condicional.
+WHILE: estructura iterativa.
+RETURN: retorno de un método.
+CALL: llamada a un método.
+ARG_LIST: lista de argumentos.
+OPERATION: operación o expresión.
+ID: identificador.
+LITERAL: literal.
+
+Para algunas construcciones se utilizan nodos auxiliares de lista, para poder mantener 
+una representación uniforme de las estructuras con una cantidad variable de elementos.
+
+- detalles de implementación: 
+los hijos de un nodo se implementan utilizando una estructura de lista,
 donde cada hijo tiene una posición [i]. Almacenar un hijo nuevo en un nodo aplica una realocación de memoria
 de forma dinámica.
+Los nodos del AST se implementan mediante la estructura Node. Cada nodo 
+almacena su tipo, un valor opcional y un arreglo dinámico de punteros a sus hijos.
+
+El árbol es recorrido recursivamente para su impresión y liberación de memoria. La función de liberación 
+recorre primero los hijos de cada nodo y luego libera la memoria correspondiente al propio nodo.
+
 - problemas conocidos:
+(aclaración): Actualmente la construcción del AST se realiza durante el análisis sintáctico mediante acciones semánticas de Bison.
+el seguimiento de la tabla de símbolos y análisis semántico se realizará sobre él.
 
 2) ETAPA: TABLA DE símbolos
 
 - división de trabajo:
 - diseño:
+
+. Decidimos implementar la tabla de símbolos utilizando una pila de entornos (scopes), ya que el lenguaje permite
+entornos anidados y ocultamiento de identificadores.
+
+. La búsqueda de identificadores se realiza desde el entorno actual hacia los ámbitos exteriores. Decidimos 
+utilizar este mecanismo para soportar el shadowing, permitiendo que una declaración interna oculte una declaración externa con el mismo nombre.
+
+. La inserción verifica que no exista otro símbolo con el mismo nombre dentro del ámbito actual, ya que 
+el lenguaje no permite declaraciones duplicadas dentro de un mismo scope.
+
+. Decidimos separar la implementación de la tabla de símbolos del análisis semántico. La tabla se encarga 
+de las operaciones sobre scopes y símbolos, mientras que el analizador semántico decide cuándo crear o 
+cerrar ámbitos y qué identificadores deben incorporarse.
+
+. Los nodos ID_NODE del AST pueden mantener una referencia al Symbol correspondiente. 
+Decidimos hacerlo de esta forma para conservar la asociación entre cada uso o declaración de un identificador
+y su entrada en la tabla, facilitando las etapas posteriores del compilador.
+
+. El ámbito global se crea al iniciar el análisis.
+
+. Los parámetros se incorporan al ámbito correspondiente a la función y las variables locales
+al ámbito donde son declaradas.
+
 - detalles de implementación:
+
+. Cada entorno contiene una lista de símbolos. Al ingresar a un nuevo entorno se agrega uno a la pila y al salir
+se elimina, permitiendo que las búsquedas comiencen siempre desde el entorno más interno.
+
+. Decidimos representar los símbolos mediante una estructura que almacena nombre, tipo y categoría 
+(variable, parámetro o función), además de la información necesaria para los parámetros de las funciones.
+
 - problemas conocidos:
