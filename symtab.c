@@ -69,10 +69,16 @@ Symbol* symtab_insert(char* name, DataType type, SymbolKind kind) {
     new_symbol->type = type;
     new_symbol->kind = kind;
     new_symbol->params = NULL;
+    new_symbol->next = NULL;
     
-    // Insert at the front of current scope's list
-    new_symbol->next = top_scope->symbols;
-    top_scope->symbols = new_symbol;
+    // Insert at the end of current scope's list to preserve order
+    if (top_scope->symbols == NULL) {
+        top_scope->symbols = new_symbol;
+    } else {
+        Symbol* curr = top_scope->symbols;
+        while (curr->next != NULL) curr = curr->next;
+        curr->next = new_symbol;
+    }
     
     return new_symbol;
 }
@@ -109,12 +115,27 @@ static const char* get_type_name(DataType type) {
 // Helper function to print symbol table
 void symtab_print() {
     printf("=== SYMBOL TABLE ===\n");
-    ScopeNode* current_scope = top_scope;
-    int level = 0;
     
-    while (current_scope != NULL) {
-        printf("Scope Level %d:\n", level);
-        Symbol* sym = current_scope->symbols;
+    // Count total depth
+    int total_depth = 0;
+    ScopeNode* curr = top_scope;
+    while (curr != NULL) {
+        total_depth++;
+        curr = curr->prev;
+    }
+    
+    // Create an array to hold pointers to scopes
+    ScopeNode** scopes = (ScopeNode**)malloc(total_depth * sizeof(ScopeNode*));
+    curr = top_scope;
+    for (int i = total_depth - 1; i >= 0; i--) {
+        scopes[i] = curr;
+        curr = curr->prev;
+    }
+    
+    // Print from Global (0) to Local (total_depth - 1)
+    for (int i = 0; i < total_depth; i++) {
+        printf("Scope Level %d:\n", i);
+        Symbol* sym = scopes[i]->symbols;
         if (sym == NULL) {
             printf("  (empty)\n");
         }
@@ -122,8 +143,8 @@ void symtab_print() {
             printf("  - %s (Type: %s)\n", sym->name, get_type_name(sym->type));
             sym = sym->next;
         }
-        current_scope = current_scope->prev;
-        level++;
     }
+    
+    free(scopes);
     printf("====================\n");
 }

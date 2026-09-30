@@ -58,6 +58,30 @@ void addChild(Node *parent, Node *child) {
     parent->child_count++;
 }
 
+void prependChild(Node *parent, Node *child) {
+    if (parent == NULL) {
+        fprintf(stderr, "Error: trying to prepend child to NULL parent\n");
+        return;
+    }
+    if (child == NULL) {
+        fprintf(stderr, "Error: trying to prepend NULL child\n");
+        return;
+    }
+    Node **new_children = realloc(
+        parent->children,
+        (parent->child_count + 1) * sizeof(Node *)
+    );
+    if (new_children == NULL) {
+        fprintf(stderr, "Error: couldn't allocate memory (tree)\n");
+        exit(EXIT_FAILURE);
+    }
+    parent->children = new_children;
+    for (int i = parent->child_count; i > 0; i--) {
+        parent->children[i] = parent->children[i - 1];
+    }
+    parent->children[0] = child;
+    parent->child_count++;
+}
 
 const char *typeName(NodeType type) {
 

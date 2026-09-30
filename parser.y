@@ -76,7 +76,8 @@ const char* dtype_to_str(DataType t) {
 
 program:
     declarations {
-        $$ = $1;
+        $$ = createNode(PROGRAM_NODE, NULL);
+        addChild($$, $1);
         ast_root = $$;
     }
     ;
@@ -84,7 +85,7 @@ program:
 declarations:
     var_decl declarations {
         $$ = $2;
-        addChild($$, $1);
+        prependChild($$, $1);
     }
     | method_decl method_decl_list {
         $$ = createNode(DECLARATIONS_NODE, NULL);

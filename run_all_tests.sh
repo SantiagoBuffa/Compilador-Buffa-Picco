@@ -18,7 +18,9 @@ echo "       TESTS VÁLIDOS           "
 echo "==============================="
 for file in Tests/valid/*; do
     if [ ! -f "$file" ]; then continue; fi
+    echo -e "\n--- Analizando: $file ---"
     out=$(./compilador_test "$file" 2>&1)
+    echo "$out"
     if echo "$out" | grep -q "Parseo exitoso" && ! echo "$out" | grep -q "Semantic Error"; then
         echo -e "[\e[32mPASS\e[0m] $file"
         pass=$((pass+1))
@@ -34,7 +36,9 @@ echo "       TESTS INVÁLIDOS         "
 echo "==============================="
 for file in Tests/invalid/*; do
     if [ ! -f "$file" ]; then continue; fi
+    echo -e "\n--- Analizando: $file ---"
     out=$(./compilador_test "$file" 2>&1)
+    echo "$out"
     if echo "$out" | grep -E -q "Error en la línea|Lexic error|Semantic Error"; then
         echo -e "[\e[32mPASS\e[0m] $file"
         pass=$((pass+1))

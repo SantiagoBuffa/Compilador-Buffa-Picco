@@ -47,8 +47,11 @@ typedef struct Node {
 /* Create a node with no children */
 Node *createNode(NodeType type, char *value);
 
-/* Add a child */
+/* Add a child at the end */
 void addChild(Node *parent, Node *child);
+
+/* Add a child at the beginning */
+void prependChild(Node *parent, Node *child);
 
 /* Print the tree */
 void printAST(Node *root);
