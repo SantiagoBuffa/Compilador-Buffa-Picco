@@ -32,7 +32,7 @@ static void traverse(Node* node) {
         }
     }
 
-    // Si es un método o un bloque, creamos un nuevo scope
+    // If it is a method or a block, we create a new scope
     if (node->type == METHOD_NODE || node->type == BLOCK_NODE) {
         symtab_enter_scope();
         is_scope_creator = true;
@@ -44,7 +44,7 @@ static void traverse(Node* node) {
     } 
     else if (node->type == VAR_DECL_NODE) {
         DataType var_type = str_to_dtype(node->value);
-        // Todos los hijos de un VAR_DECL_NODE son ID_NODEs (las variables declaradas)
+        // All children of a VAR_DECL_NODE are ID_NODEs (the declared variables)
         for (int i = 0; i < node->child_count; i++) {
             if (node->children[i]->type == ID_NODE) {
                 char* var_name = node->children[i]->value;
@@ -91,20 +91,19 @@ static void traverse(Node* node) {
         }
     }
 
-    // Recorremos los hijos
+    // We go through the children
     for (int i = 0; i < node->child_count; i++) {
         traverse(node->children[i]);
     }
 
     // Post-order processing
     if (is_scope_creator) {
-        printf("--- Cerrando Scope --- Estado actual de la tabla:\n");
+        printf("--- Closing Scope --- Current state of the table:\n");
         symtab_print();
         symtab_exit_scope();
     }
 }
 
 void analyze_semantics(Node* root) {
-    // La raíz siempre arranca en el scope global (inicializado en main)
     traverse(root);
 }

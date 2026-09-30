@@ -34,11 +34,7 @@ void symtab_enter_scope() {
 
 void symtab_exit_scope() {
     if (top_scope == NULL) return;
-    
-    // NOTE: We do NOT free Symbol* because the AST will need them
-    // during the code generation phase. We simply discard the scope node
-    // so they are no longer visible in future lookups by name.
-    
+
     ScopeNode* old_scope = top_scope;
     top_scope = top_scope->prev;
     free(old_scope);
@@ -49,7 +45,7 @@ Symbol* symtab_insert(char* name, DataType type, SymbolKind kind) {
         symtab_init();
     }
 
-    // Check if symbol already exists in THE SAME scope (Semantic rule: no redeclarations in same block)
+    // Check if symbol already exists in the same scope
     Symbol* current = top_scope->symbols;
     while (current != NULL) {
         if (strcmp(current->name, name) == 0) {

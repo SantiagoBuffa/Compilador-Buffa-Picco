@@ -3,7 +3,7 @@
 
 #include "estructuras.h"
 
-// Inicia el análisis semántico recorriendo el AST
+// It begins the semantic analysis by traversing the AST.
 void analyze_semantics(Node* root);
 
 #endif

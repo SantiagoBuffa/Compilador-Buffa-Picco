@@ -301,7 +301,7 @@ literal:
 %%
 
 void yyerror(const char *s) {
-  fprintf(stderr, "Error en la línea %d: %s\n", yylineno, s); 
+  fprintf(stderr, "Error on line: %d: %s\n", yylineno, s); 
 }
 
 int main(int argc, char** argv) {
@@ -313,7 +313,7 @@ int main(int argc, char** argv) {
     yyin = stdin;
 
   if (yyparse() == 0) {
-      printf("Parseo exitoso.\n\n");
+      printf("successful parsing.\n\n");
       printf("=== AST ===\n");
       printAST(ast_root);
       printf("\n=== SEMANTIC ANALYSIS & SYMTAB ===\n");
