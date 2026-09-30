@@ -57,7 +57,7 @@ static void traverse(Node* node) {
         }
     }
     else if (node->type == PARAMETER_NODE && strcmp(node->value, "list") != 0 && strcmp(node->value, "list_empty") != 0) {
-        // Es un parámetro individual
+        // individual parameter
         DataType param_type = str_to_dtype(node->value);
         if (node->child_count > 0 && node->children[0]->type == ID_NODE) {
             char* param_name = node->children[0]->value;
