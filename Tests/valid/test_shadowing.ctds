@@ -1,0 +1,12 @@
+// Test shadowing rules
+int x;
+
+int func(int x) { // param hides global
+    int x;        // local hides param
+    if (true) {
+        int x;    // block hides local
+        x = 1;
+    }
+    x = 2;
+    return x;
+}

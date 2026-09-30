@@ -1,0 +1,4 @@
+// Test calling undeclared function
+void main() {
+    undeclaredFunc(); // Error: undeclared function
+}

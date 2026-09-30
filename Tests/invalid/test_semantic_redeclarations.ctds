@@ -1,0 +1,8 @@
+// Test multiple invalid redeclarations
+int a;
+int a; // Error: global redeclaration
+
+void func(int p, float p) { // Error: param redeclaration
+    int local;
+    int local; // Error: local redeclaration
+}

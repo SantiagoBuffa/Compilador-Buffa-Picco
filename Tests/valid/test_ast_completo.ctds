@@ -1,0 +1,16 @@
+// Test AST construction
+int global_var, global_var2;
+float f;
+
+void test_ast(int param1, boolean param2) {
+    int local;
+    local = 1 + 2 * 3;
+    if (param2) {
+        while (local > 0) {
+            local = local - 1;
+        }
+    } else {
+        test_ast(local, false);
+    }
+    return;
+}

@@ -1,0 +1,9 @@
+// Test undeclared and out-of-scope variables
+void main() {
+    y = 10; // Error: undeclared
+    if (true) {
+        int z;
+        z = 5;
+    }
+    z = 20; // Error: out of scope
+}

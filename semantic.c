@@ -18,6 +18,20 @@ static void traverse(Node* node) {
 
     bool is_scope_creator = false;
 
+    // Function must be inserted in the current (global) scope before creating the method's inner scope
+    if (node->type == METHOD_NODE) {
+        if (node->child_count > 0 && node->children[0]->type == ID_NODE) {
+            char* func_name = node->children[0]->value;
+            DataType ret_type = str_to_dtype(node->value);
+            
+            Symbol* sym = symtab_insert(func_name, ret_type, KIND_FUNC);
+            if (!sym) {
+                fprintf(stderr, "Semantic Error: Function '%s' already declared.\n", func_name);
+            }
+            node->children[0]->symbol = sym;
+        }
+    }
+
     // Si es un método o un bloque, creamos un nuevo scope
     if (node->type == METHOD_NODE || node->type == BLOCK_NODE) {
         symtab_enter_scope();
@@ -26,21 +40,7 @@ static void traverse(Node* node) {
 
     // Pre-order processing
     if (node->type == METHOD_NODE) {
-        // node->value tiene el tipo de retorno
-        // node->children[0] tiene el ID_NODE con el nombre
-        if (node->child_count > 0 && node->children[0]->type == ID_NODE) {
-            char* func_name = node->children[0]->value;
-            DataType ret_type = str_to_dtype(node->value);
-            
-            // Declaramos la función en el scope GLOBAL (esto requeriría insertarlo ANTES de entrar al scope, 
-            // pero como acabamos de entrar, lo insertaremos aquí. Ojo con el shadowing si se invoca recursivamente).
-            // Para simplificar, lo registramos en el scope actual.
-            Symbol* sym = symtab_insert(func_name, ret_type, KIND_FUNC);
-            if (!sym) {
-                fprintf(stderr, "Semantic Error: Function '%s' already declared.\n", func_name);
-            }
-            node->children[0]->symbol = sym;
-        }
+        // Function declaration was handled above
     } 
     else if (node->type == VAR_DECL_NODE) {
         DataType var_type = str_to_dtype(node->value);
@@ -69,13 +69,22 @@ static void traverse(Node* node) {
         }
     }
     else if (node->type == ID_NODE) {
-        // Uso de una variable (si no es declaración)
-        // Como ya vinculamos las declaraciones arriba, podemos buscar.
-        // Pero ojo: si es una declaración, ya le asignamos símbolo. Si no tiene, es un uso.
         if (node->symbol == NULL) {
             Symbol* sym = symtab_lookup(node->value);
             if (!sym) {
                 fprintf(stderr, "Semantic Error: Identifier '%s' not declared.\n", node->value);
+            } else {
+                node->symbol = sym;
+            }
+        }
+    }
+    else if (node->type == CALL_NODE) {
+        if (node->symbol == NULL) {
+            Symbol* sym = symtab_lookup(node->value);
+            if (!sym) {
+                fprintf(stderr, "Semantic Error: Function '%s' not declared.\n", node->value);
+            } else if (sym->kind != KIND_FUNC) {
+                fprintf(stderr, "Semantic Error: '%s' is not a function.\n", node->value);
             } else {
                 node->symbol = sym;
             }
