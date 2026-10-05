@@ -23,6 +23,7 @@ Node *createNode(NodeType type, char *value) {
     }
     
     node->symbol = NULL;
+    node->eval_type = TYPE_UNKNOWN;
 
     node->children = NULL;
     node->child_count = 0;

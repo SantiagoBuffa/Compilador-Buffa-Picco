@@ -14,3 +14,6 @@ void test_ast(int param1, boolean param2) {
     }
     return;
 }
+
+void main() {
+}

@@ -1,6 +1,8 @@
 #ifndef ESTRUCTURAS_H
 #define ESTRUCTURAS_H
 
+#include "symtab.h"
+
 typedef enum {
     PROGRAM_NODE,
 
@@ -28,7 +30,6 @@ typedef enum {
     LITERAL_NODE
 } NodeType;
 
-
 struct Symbol;
 
 typedef struct Node {
@@ -36,6 +37,7 @@ typedef struct Node {
     char *value;
     
     struct Symbol *symbol; // Link to the Symbol Table
+    DataType eval_type;
 
     struct Node **children;
     int child_count;

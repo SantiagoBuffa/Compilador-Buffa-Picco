@@ -10,3 +10,6 @@ int func(int x) { // param hides global
     x = 2;
     return x;
 }
+
+void main() {
+}

@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 echo "==============================="
 echo "       COMPILING COMPILER      "
 echo "==============================="
-flex scanner.lex && bison -d parser.y && gcc lex.yy.c parser.tab.c estructuras.c symtab.c semantic.c -o compilador_test
+flex scanner.lex && bison -d parser.y && gcc lex.yy.c parser.tab.c estructuras.c symtab.c semantic.c -o compilador_test -lm
 if [ $? -ne 0 ]; then
     echo "Error de compilación"
     exit 1
