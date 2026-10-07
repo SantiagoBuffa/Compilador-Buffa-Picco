@@ -201,6 +201,11 @@ verificando que esté declarado, que sea una función y que no posea parámetros
 
 . La comparación (==) entre enteros y floats es inválida. Solo es posible si ambas expresiones son del mismo tipo.
 
+. Para las conversiones implícitas entre int y float, se distinguen los casos en los que el operando es un literal. 
+En estos casos se adapta directamente su representación y tipo; para expresiones más complejas se informa la coerción implícita mediante una advertencia.
+
+. Los métodos crean un nuevo ámbito para sus parámetros y variables locales. El bloque principal del método reutiliza este mismo ámbito, mientras que los bloques anidados generan nuevos ámbitos.
+
 - detalles de implementación:
 
 . Para el manejo de ámbitos se implementó una pila de scopes, donde cada ámbito mantiene una lista enlazada 
@@ -218,5 +223,7 @@ Esto permite comparar cada retorno con el tipo declarado por la función sin ten
 . Las expresiones calculan su tipo de manera ascendente: los literales e identificadores establecen su tipo inicialmente 
 y las operaciones determinan el tipo resultante a partir de sus operandos. Esto permite reutilizar la información calculada por los nodos hijos para realizar los chequeos semánticos.
 
+. Para verificar que los métodos que retornan un valor posean un return en todos los caminos de ejecución, se implementó un recorrido recursivo del AST. 
+Los bloques se recorren hasta encontrar una sentencia que garantice el retorno, mientras que un if solo se considera completo cuando posee else y ambas ramas garantizan un return.
 
 - problemas conocidos:
