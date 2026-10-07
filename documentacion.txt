@@ -159,3 +159,64 @@ se elimina, permitiendo que las búsquedas comiencen siempre desde el entorno m�
 (variable, parámetro o función), además de la información necesaria para los parámetros de las funciones.
 
 - problemas conocidos:
+
+2) ETAPA: análisis semántico
+
+- división de trabajo:
+
+
+- diseño:
+
+. Decidimos realizar el análisis semántico mediante un recorrido del AST, utilizando la tabla de símbolos 
+para resolver los identificadores y verificar las reglas de alcance y visibilidad.
+
+. Modificamos el árbol agregando un eval_type para recorrer en el análisis semántico (chequeo de tipos)
+
+. Para los identificadores, el tipo se obtiene a partir del símbolo asociado en la tabla de símbolos. 
+Para los literales, el tipo se determina según su valor, y para las operaciones se calcula a partir de los tipos de sus operandos.
+
+. El chequeo de tipos de las expresiones se hace postorder, ya que primero es necesario conocer los tipos de sus hijos
+para determinar el tipo de la expresión completa.
+
+. Las llamadas a métodos almacenan una referencia al símbolo de la función correspondiente. Esto permite verificar que el método exista,
+que efectivamente sea una función, que la cantidad de argumentos coincida con la cantidad de parámetros y que sus tipos sean compatibles.
+
+. Para cada método se almacena además la lista de parámetros en su símbolo. Decidimos mantener esta información en la tabla de símbolos 
+para poder utilizarla al analizar las llamadas a métodos.
+
+. Se utiliza una referencia al método actual durante el recorrido para poder verificar las sentencias return según el tipo de retorno declarado por la función.
+
+. Se implementaron los chequeos correspondientes a operadores aritméticos, relacionales y lógicos, determinando además el tipo resultante de cada operación.
+
+. Las condiciones de las estructuras if y while se verifican para asegurar que sean de tipo boolean.
+
+. Las asignaciones se verifican comparando el tipo de la variable con el tipo de la expresión asignada, 
+contemplando las conversiones permitidas entre int y float.
+
+. Las sentencias return se verifican comparando la expresión retornada con el tipo de retorno del método. También se controla que los métodos void 
+no retornen una expresión y que los métodos que retornan un valor sí lo hagan.
+
+. Decidimos realizar el control de la existencia y características del método main al finalizar el análisis, 
+verificando que esté declarado, que sea una función y que no posea parámetros (el chequeo se realiza sobre la tabla de símbolos).
+
+. La comparación (==) entre enteros y floats es inválida. Solo es posible si ambas expresiones son del mismo tipo.
+
+- detalles de implementación:
+
+. Para el manejo de ámbitos se implementó una pila de scopes, donde cada ámbito mantiene una lista enlazada 
+de símbolos. Las búsquedas recorren la pila desde el ámbito actual hacia los ámbitos exteriores, permitiendo resolver identificadores y soportar el ocultamiento de nombres.
+
+. El análisis de tipos se implementó mediante un recorrido postorden del AST. Cada nodo almacena su tipo calculado
+en eval_type, por lo que al analizar una operación ya se dispone de los tipos de todos sus operandos.
+
+. Las llamadas a métodos mantienen una referencia directa al Symbol correspondiente. De esta forma, durante el análisis semántico 
+se puede acceder directamente a su tipo de retorno y a la lista de parámetros para verificar los argumentos de la llamada.
+
+. Para verificar las sentencias return, se mantiene una referencia al método que se está analizando actualmente. 
+Esto permite comparar cada retorno con el tipo declarado por la función sin tener que buscar nuevamente el método en la tabla de símbolos.
+
+. Las expresiones calculan su tipo de manera ascendente: los literales e identificadores establecen su tipo inicialmente 
+y las operaciones determinan el tipo resultante a partir de sus operandos. Esto permite reutilizar la información calculada por los nodos hijos para realizar los chequeos semánticos.
+
+
+- problemas conocidos:

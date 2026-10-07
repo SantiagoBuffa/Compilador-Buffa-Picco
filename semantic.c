@@ -7,6 +7,7 @@
 
 static Symbol* current_method = NULL;
 
+// auxiliary functions
 static DataType str_to_dtype(const char* str) {
     if(!str) return TYPE_UNKNOWN;
     if(strcmp(str, "int") == 0) return TYPE_INT;
@@ -26,6 +27,7 @@ static const char* dtype_to_str(DataType type) {
     }
 }
 
+// Helper function to attempt truncation of float literals to int when necessary
 static void try_truncate_literal(Node* literal_node, DataType target_type) {
     if (literal_node->type == LITERAL_NODE && target_type == TYPE_INT) {
         if (strchr(literal_node->value, '.') != NULL) {
@@ -86,6 +88,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
     Symbol* saved_method = current_method;
 
     // Function must be inserted in the current (global) scope before creating the method's inner scope
+    // method declaration
     if (node->type == METHOD_NODE) {
         if (node->child_count > 0 && node->children[0]->type == ID_NODE) {
             char* func_name = node->children[0]->value;
@@ -95,6 +98,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
             if (!sym) {
                 fprintf(stderr, "Semantic Error: Function '%s' already declared.\n", func_name);
             } else {
+                // has parameters
                 if (node->child_count > 1 && node->children[1]->type == PARAM_LIST_NODE) {
                     Node* param_list = node->children[1];
                     ParamList* head = NULL;
