@@ -140,6 +140,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
         // Function declaration was handled above
     } 
     else if (node->type == VAR_DECL_NODE) {
+        // Rule 1: No duplicate declarations in the same block
         DataType var_type = str_to_dtype(node->value);
         // All children of a VAR_DECL_NODE are ID_NODEs (the declared variables)
         for (int i = 0; i < node->child_count; i++) {
@@ -154,6 +155,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
         }
     }
     else if (node->type == PARAMETER_NODE && strcmp(node->value, "list") != 0 && strcmp(node->value, "list_empty") != 0) {
+        // Rule 1: No duplicate declarations in the same block (applied to parameters)
         // individual parameter
         DataType param_type = str_to_dtype(node->value);
         if (node->child_count > 0 && node->children[0]->type == ID_NODE) {
@@ -166,6 +168,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
         }
     }
     else if (node->type == ID_NODE) {
+        // Rule 2: No use before declaration
         if (node->symbol == NULL) {
             Symbol* sym = symtab_lookup(node->value);
             if (!sym) {
@@ -214,9 +217,10 @@ static void traverse(Node* node, bool skip_scope_creation) {
     }
     else if (node->type == CALL_NODE) {
         if (node->symbol) {
+            // Rule 5: Methods used as expressions must return a result (void rejected by type system)
             node->eval_type = node->symbol->type;
 
-            // Check arguments
+            // Rule 4: Call arguments must match definition
             Node* arg_list = NULL;
             if (node->child_count > 0 && node->children[0]->type == ARG_LIST_NODE) {
                 arg_list = node->children[0];
@@ -234,6 +238,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
                 for (int i = 0; i < arg_count; i++) {
                     Node* arg_expr = arg_list->children[i];
                     if (arg_expr->eval_type != p->type) {
+                        // Rule 14: Coercions/truncations allowed between int and float
                         if ((arg_expr->eval_type == TYPE_INT && p->type == TYPE_FLOAT) || 
                             (arg_expr->eval_type == TYPE_FLOAT && p->type == TYPE_INT)) {
                             try_truncate_literal(arg_expr, p->type);
@@ -252,12 +257,14 @@ static void traverse(Node* node, bool skip_scope_creation) {
     else if (node->type == OPERATION_NODE) {
         char* op = node->value;
         if (strcmp(op, "!") == 0) {
+            // Rule 12: Logical operands must be boolean
             Node* expr = node->children[0];
             if (expr->eval_type != TYPE_BOOLEAN && expr->eval_type != TYPE_UNKNOWN) {
                 fprintf(stderr, "Semantic Error: Operand of '!' must be boolean, got %s.\n", dtype_to_str(expr->eval_type));
             }
             node->eval_type = TYPE_BOOLEAN;
         } else if (strcmp(op, "- (unary)") == 0) {
+            // Rule 10: Arithmetic and relational operands must be int or float
             Node* expr = node->children[0];
             if (expr->eval_type != TYPE_INT && expr->eval_type != TYPE_FLOAT && expr->eval_type != TYPE_UNKNOWN) {
                 fprintf(stderr, "Semantic Error: Operand of unary '-' must be int or float, got %s.\n", dtype_to_str(expr->eval_type));
@@ -268,17 +275,20 @@ static void traverse(Node* node, bool skip_scope_creation) {
             Node* right = node->children[1];
             
             if (strcmp(op, "&&") == 0 || strcmp(op, "||") == 0) {
+                // Rule 12: Logical operands must be boolean
                 if ((left->eval_type != TYPE_BOOLEAN && left->eval_type != TYPE_UNKNOWN) || 
                     (right->eval_type != TYPE_BOOLEAN && right->eval_type != TYPE_UNKNOWN)) {
                     fprintf(stderr, "Semantic Error: Operands of '%s' must be boolean.\n", op);
                 }
                 node->eval_type = TYPE_BOOLEAN;
             } else if (strcmp(op, "==") == 0) {
+                // Rule 11: Operands of '==' must have the same type
                 if (left->eval_type != right->eval_type && left->eval_type != TYPE_UNKNOWN && right->eval_type != TYPE_UNKNOWN) {
                     fprintf(stderr, "Semantic Error: Operands of '==' must have the same type, got %s and %s.\n", dtype_to_str(left->eval_type), dtype_to_str(right->eval_type));
                 }
                 node->eval_type = TYPE_BOOLEAN;
             } else if (strcmp(op, "<") == 0 || strcmp(op, ">") == 0) {
+                // Rule 10: Arithmetic and relational operands must be int or float
                 if ((left->eval_type != TYPE_INT && left->eval_type != TYPE_FLOAT && left->eval_type != TYPE_UNKNOWN) || 
                     (right->eval_type != TYPE_INT && right->eval_type != TYPE_FLOAT && right->eval_type != TYPE_UNKNOWN)) {
                     fprintf(stderr, "Semantic Error: Operands of '%s' must be int or float.\n", op);
@@ -291,6 +301,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
                 }
                 node->eval_type = TYPE_INT;
             } else if (strcmp(op, "+") == 0 || strcmp(op, "-") == 0 || strcmp(op, "*") == 0 || strcmp(op, "/") == 0) {
+                // Rule 10: Arithmetic and relational operands must be int or float
                 if ((left->eval_type != TYPE_INT && left->eval_type != TYPE_FLOAT && left->eval_type != TYPE_UNKNOWN) || 
                     (right->eval_type != TYPE_INT && right->eval_type != TYPE_FLOAT && right->eval_type != TYPE_UNKNOWN)) {
                     fprintf(stderr, "Semantic Error: Operands of '%s' must be int or float.\n", op);
@@ -308,12 +319,15 @@ static void traverse(Node* node, bool skip_scope_creation) {
         Node* expr_node = node->children[1];
         
         if (id_node->symbol) {
+            // Rule 8: Location must be a variable or parameter, not a function
             if (id_node->symbol->kind == KIND_FUNC) {
                 fprintf(stderr, "Semantic Error: Cannot assign to function '%s'.\n", id_node->value);
             } else {
                 DataType ltype = id_node->symbol->type;
                 DataType rtype = expr_node->eval_type;
+                // Rule 13: Assignment location and expression must have the same type
                 if (ltype != rtype && ltype != TYPE_UNKNOWN && rtype != TYPE_UNKNOWN) {
+                    // Rule 14: Coercions/truncations allowed between int and float
                     if ((ltype == TYPE_INT && rtype == TYPE_FLOAT) || (ltype == TYPE_FLOAT && rtype == TYPE_INT)) {
                         try_truncate_literal(expr_node, ltype);
                         if (expr_node->type != LITERAL_NODE) {
@@ -336,6 +350,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
         DataType expected_ret = current_method ? current_method->type : TYPE_UNKNOWN;
         
         if (expected_ret == TYPE_VOID) {
+            // Rule 6: Return in void method cannot have an expression
             if (expr_node != NULL) {
                 fprintf(stderr, "Semantic Error: Void method '%s' cannot return a value.\n", current_method ? current_method->name : "unknown");
             }
@@ -344,7 +359,9 @@ static void traverse(Node* node, bool skip_scope_creation) {
                 fprintf(stderr, "Semantic Error: Non-void method '%s' must return a value of type %s.\n", 
                         current_method ? current_method->name : "unknown", dtype_to_str(expected_ret));
             } else {
+                // Rule 7: Return expression must match the method's return type
                 if (expr_node->eval_type != expected_ret && expr_node->eval_type != TYPE_UNKNOWN && expected_ret != TYPE_UNKNOWN) {
+                    // Rule 14: Coercions/truncations allowed between int and float
                     if ((expected_ret == TYPE_INT && expr_node->eval_type == TYPE_FLOAT) || 
                         (expected_ret == TYPE_FLOAT && expr_node->eval_type == TYPE_INT)) {
                         try_truncate_literal(expr_node, expected_ret);
@@ -360,6 +377,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
         }
     }
     else if (node->type == IF_NODE || node->type == WHILE_NODE) {
+        // Rule 9: Expression in if or while must be boolean
         Node* expr_node = node->children[0];
         if (expr_node->eval_type != TYPE_BOOLEAN && expr_node->eval_type != TYPE_UNKNOWN) {
             fprintf(stderr, "Semantic Error: Condition of '%s' must be boolean, got %s.\n", 
@@ -368,6 +386,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
     }
     else if (node->type == METHOD_NODE) {
         if (current_method && current_method->type != TYPE_VOID) {
+            // Additional check: all control paths must return a value
             // The block node is the last child of METHOD_NODE
             Node* block_node = node->children[node->child_count - 1];
             if (!check_all_paths_return(block_node)) {
@@ -389,7 +408,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
 void analyze_semantics(Node* root) {
     traverse(root, false);
 
-    // Check for main function
+    // Rule 3: Check for main function without parameters
     Symbol* main_sym = symtab_lookup("main");
     if (!main_sym) {
         fprintf(stderr, "Semantic Error: Method 'main' is missing.\n");
