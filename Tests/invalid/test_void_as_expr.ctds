@@ -1,0 +1,2 @@
+void myVoidFunc() {}
+void main() { int x; x = myVoidFunc(); }
