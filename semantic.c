@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
+
 #include "semantic.h"
 #include "symtab.h"
 
@@ -30,13 +30,13 @@ static void try_truncate_literal(Node* literal_node, DataType target_type) {
     if (literal_node->type == LITERAL_NODE && target_type == TYPE_INT) {
         if (strchr(literal_node->value, '.') != NULL) {
             float fval = atof(literal_node->value);
-            int ival = (int)roundf(fval);
+            int ival = (int)fval;
             char buf[64];
             snprintf(buf, sizeof(buf), "%d", ival);
             free(literal_node->value);
             literal_node->value = strdup(buf);
             literal_node->eval_type = TYPE_INT; 
-            fprintf(stderr, "Warning: Implicit truncation from float to int in literal. Rounded to %d.\n", ival);
+            fprintf(stderr, "Warning: Implicit truncation from float to int in literal. Truncated to %d.\n", ival);
         }
     } else if (literal_node->type == LITERAL_NODE && target_type == TYPE_FLOAT) {
         if (strchr(literal_node->value, '.') == NULL && strcmp(literal_node->value, "true") != 0 && strcmp(literal_node->value, "false") != 0) {
@@ -50,7 +50,35 @@ static void try_truncate_literal(Node* literal_node, DataType target_type) {
     }
 }
 
-static void traverse(Node* node) {
+static bool check_all_paths_return(Node* node) {
+    if (!node) return false;
+    
+    if (node->type == RETURN_NODE) {
+        return true;
+    }
+    
+    if (node->type == IF_NODE) {
+        // Si tiene bloque 'else' (hijo 2 existe)
+        if (node->child_count > 2) {
+            bool if_returns = check_all_paths_return(node->children[1]);
+            bool else_returns = check_all_paths_return(node->children[2]);
+            return if_returns && else_returns;
+        }
+        return false;
+    }
+    
+    if (node->type == BLOCK_NODE || node->type == STATEMENT_LIST_NODE) {
+        for (int i = 0; i < node->child_count; i++) {
+            if (check_all_paths_return(node->children[i])) {
+                return true;
+            }
+        }
+    }
+    
+    return false;
+}
+
+static void traverse(Node* node, bool skip_scope_creation) {
     if (!node) return;
 
     bool is_scope_creator = false;
@@ -98,7 +126,7 @@ static void traverse(Node* node) {
     }
 
     // If it is a method or a block, we create a new scope
-    if (node->type == METHOD_NODE || node->type == BLOCK_NODE) {
+    if (!skip_scope_creation && (node->type == METHOD_NODE || node->type == BLOCK_NODE)) {
         symtab_enter_scope();
         is_scope_creator = true;
     }
@@ -158,7 +186,11 @@ static void traverse(Node* node) {
 
     // We go through the children
     for (int i = 0; i < node->child_count; i++) {
-        traverse(node->children[i]);
+        if (node->type == METHOD_NODE && node->children[i]->type == BLOCK_NODE) {
+            traverse(node->children[i], true);
+        } else {
+            traverse(node->children[i], false);
+        }
     }
 
     // Post-order processing
@@ -239,9 +271,7 @@ static void traverse(Node* node) {
                 node->eval_type = TYPE_BOOLEAN;
             } else if (strcmp(op, "==") == 0) {
                 if (left->eval_type != right->eval_type && left->eval_type != TYPE_UNKNOWN && right->eval_type != TYPE_UNKNOWN) {
-                    if (!((left->eval_type == TYPE_INT && right->eval_type == TYPE_FLOAT) || (left->eval_type == TYPE_FLOAT && right->eval_type == TYPE_INT))) {
-                        fprintf(stderr, "Semantic Error: Operands of '==' must have the same type, got %s and %s.\n", dtype_to_str(left->eval_type), dtype_to_str(right->eval_type));
-                    }
+                    fprintf(stderr, "Semantic Error: Operands of '==' must have the same type, got %s and %s.\n", dtype_to_str(left->eval_type), dtype_to_str(right->eval_type));
                 }
                 node->eval_type = TYPE_BOOLEAN;
             } else if (strcmp(op, "<") == 0 || strcmp(op, ">") == 0) {
@@ -332,6 +362,16 @@ static void traverse(Node* node) {
                 node->type == IF_NODE ? "if" : "while", dtype_to_str(expr_node->eval_type));
         }
     }
+    else if (node->type == METHOD_NODE) {
+        if (current_method && current_method->type != TYPE_VOID) {
+            // The block node is the last child of METHOD_NODE
+            Node* block_node = node->children[node->child_count - 1];
+            if (!check_all_paths_return(block_node)) {
+                fprintf(stderr, "Semantic Error: Function '%s' must return a value of type %s in all control paths.\n", 
+                    current_method->name, dtype_to_str(current_method->type));
+            }
+        }
+    }
 
     if (is_scope_creator) {
         printf("--- Closing Scope --- Current state of the table:\n");
@@ -343,7 +383,7 @@ static void traverse(Node* node) {
 }
 
 void analyze_semantics(Node* root) {
-    traverse(root);
+    traverse(root, false);
 
     // Check for main function
     Symbol* main_sym = symtab_lookup("main");
