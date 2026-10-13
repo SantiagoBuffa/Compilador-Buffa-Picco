@@ -138,6 +138,9 @@ void tac_print(FILE *out, TacList *list) {
             case TAC_PARAM:
                 fprintf(out, "    param %s\n", instr->arg1);
                 break;
+            case TAC_RECV_PARAM:
+                fprintf(out, "    recv_param %s\n", instr->res);
+                break;
             case TAC_CALL:
                 fprintf(out, "    %s = call %s, %s\n", instr->res, instr->arg1, instr->arg2);
                 break;

@@ -1,0 +1,13 @@
+func begin f
+L0:
+    t0 = 1
+    if_false t0 goto L1
+    goto L0
+L1:
+    t1 = 1
+    return t1
+func end f
+
+func begin main
+func end main
+

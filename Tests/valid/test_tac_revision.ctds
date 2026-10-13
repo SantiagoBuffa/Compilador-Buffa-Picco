@@ -1,0 +1,98 @@
+// Test que cubre los 7 casos propuestos en la revisión de TAC:
+// 1. Función con dos parámetros
+// 2. Llamada anidada
+// 3. Variables con el mismo nombre (shadowing global/local y en distintos métodos)
+// 4. Cortocircuito lógico (&& y ||)
+// 5. Control de flujo anidado (if dentro de while y while dentro de if)
+// 6. Retornos (void, con expresión, y en ambas ramas de if-else)
+// 7. Llamadas sin argumentos
+
+int x; // Variable global x
+
+void emptyCall() {
+    return; // 6. Retorno void
+}
+
+int identity(int val) {
+    // 1. Recepción de parámetro
+    return val;
+}
+
+int sumar(int a, int b) {
+    // 1. Función con dos parámetros que devuelve el resultado
+    return a + b;
+}
+
+int testShadowing(int x) {
+    // 3. Parámetro x que oculta a la global x
+    int local;
+    local = x + 10;
+    {
+        int x; // 3. Variable local que oculta al parámetro x
+        x = local * 2;
+    }
+    return local;
+}
+
+int testControl(int n) {
+    int count;
+    int acc;
+    count = n;
+    acc = 0;
+
+    // 5. Control anidado: if dentro de while
+    while (count > 0) {
+        if (count == 2) {
+            acc = acc + 100;
+        } else {
+            acc = acc + 1;
+        }
+        count = count - 1;
+    }
+
+    // 5. Control anidado: while dentro de if
+    if (acc > 50) {
+        while (acc > 80) {
+            acc = acc - 10;
+        }
+    } else {
+        acc = 0;
+    }
+
+    // 6. Retorno en ambas ramas de un if-else
+    if (acc > 0) {
+        return acc;
+    } else {
+        return -1;
+    }
+}
+
+boolean sideEffect() {
+    x = x + 1;
+    return true;
+}
+
+void main() {
+    int res;
+    boolean b1, b2;
+
+    x = 100;
+
+    // 7. Llamada sin argumentos
+    emptyCall();
+
+    // 1 y 2. Llamadas con parámetros y llamada anidada
+    res = sumar(identity(5), sumar(10, 20));
+
+    // 3. Test de shadowing
+    res = testShadowing(res);
+
+    // 5 y 6. Control anidado y retornos
+    res = testControl(3);
+
+    // 4. Cortocircuito: si el primer operando determina el valor, el segundo no se evalúa
+    b1 = false && sideEffect();
+    b2 = true || sideEffect();
+
+    return;
+}

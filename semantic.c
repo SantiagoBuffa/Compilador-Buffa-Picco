@@ -6,6 +6,14 @@
 #include "symtab.h"
 
 static Symbol* current_method = NULL;
+static int semantic_error_count = 0;
+
+#define fprintf(stream, fmt, ...) do { \
+    if ((stream) == stderr && strstr((fmt), "Semantic Error") != NULL) { \
+        semantic_error_count++; \
+    } \
+    (fprintf)((stream), (fmt), ##__VA_ARGS__); \
+} while(0)
 
 // auxiliary functions
 static DataType str_to_dtype(const char* str) {
@@ -405,7 +413,8 @@ static void traverse(Node* node, bool skip_scope_creation) {
     current_method = saved_method;
 }
 
-void analyze_semantics(Node* root) {
+int analyze_semantics(Node* root) {
+    semantic_error_count = 0;
     traverse(root, false);
 
     // Rule 3: Check for main function without parameters
@@ -417,4 +426,5 @@ void analyze_semantics(Node* root) {
     } else if (main_sym->params != NULL) {
         fprintf(stderr, "Semantic Error: Method 'main' must not have parameters.\n");
     }
+    return semantic_error_count;
 }

@@ -1,0 +1,131 @@
+global x
+func begin emptyCall
+    return
+func end emptyCall
+
+func begin identity
+    recv_param val_1
+    return val_1
+func end identity
+
+func begin sumar
+    recv_param a_2
+    recv_param b_3
+    t0 = a_2 + b_3
+    return t0
+func end sumar
+
+func begin testShadowing
+    recv_param x_4
+    t1 = 10
+    t2 = x_4 + t1
+    local_5 = t2
+    t3 = 2
+    t4 = local_5 * t3
+    x_6 = t4
+    return local_5
+func end testShadowing
+
+func begin testControl
+    recv_param n_7
+    count_8 = n_7
+    t5 = 0
+    acc_9 = t5
+L0:
+    t6 = 0
+    t7 = count_8 > t6
+    if_false t7 goto L1
+    t8 = 2
+    t9 = count_8 == t8
+    if_false t9 goto L2
+    t10 = 100
+    t11 = acc_9 + t10
+    acc_9 = t11
+    goto L3
+L2:
+    t12 = 1
+    t13 = acc_9 + t12
+    acc_9 = t13
+L3:
+    t14 = 1
+    t15 = count_8 - t14
+    count_8 = t15
+    goto L0
+L1:
+    t16 = 50
+    t17 = acc_9 > t16
+    if_false t17 goto L4
+L6:
+    t18 = 80
+    t19 = acc_9 > t18
+    if_false t19 goto L7
+    t20 = 10
+    t21 = acc_9 - t20
+    acc_9 = t21
+    goto L6
+L7:
+    goto L5
+L4:
+    t22 = 0
+    acc_9 = t22
+L5:
+    t23 = 0
+    t24 = acc_9 > t23
+    if_false t24 goto L8
+    return acc_9
+    goto L9
+L8:
+    t25 = 1
+    t26 = - t25
+    return t26
+L9:
+func end testControl
+
+func begin sideEffect
+    t27 = 1
+    t28 = x + t27
+    x = t28
+    t29 = 1
+    return t29
+func end sideEffect
+
+func begin main
+    t30 = 100
+    x = t30
+    call emptyCall, 0
+    t31 = 5
+    param t31
+    t32 = call identity, 1
+    t33 = 10
+    t34 = 20
+    param t33
+    param t34
+    t35 = call sumar, 2
+    param t32
+    param t35
+    t36 = call sumar, 2
+    res_10 = t36
+    param res_10
+    t37 = call testShadowing, 1
+    res_10 = t37
+    t38 = 3
+    param t38
+    t39 = call testControl, 1
+    res_10 = t39
+    t41 = 0
+    t40 = t41
+    if_false t40 goto L10
+    t42 = call sideEffect, 0
+    t40 = t42
+L10:
+    b1_11 = t40
+    t44 = 1
+    t43 = t44
+    if t43 goto L11
+    t45 = call sideEffect, 0
+    t43 = t45
+L11:
+    b2_12 = t43
+    return
+func end main
+

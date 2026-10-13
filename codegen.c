@@ -132,7 +132,7 @@ static char* gen_expr(Node* node, TacList* list) {
             char* right_val = gen_expr(node->children[1], list);
             char* t_res = new_temp();
 
-            TacType tt = TAC_ADD;
+            TacType tt;
             if (strcmp(op, "+") == 0) tt = TAC_ADD;
             else if (strcmp(op, "-") == 0) tt = TAC_SUB;
             else if (strcmp(op, "*") == 0) tt = TAC_MUL;
@@ -141,6 +141,13 @@ static char* gen_expr(Node* node, TacList* list) {
             else if (strcmp(op, "<") == 0) tt = TAC_LT;
             else if (strcmp(op, ">") == 0) tt = TAC_GT;
             else if (strcmp(op, "==") == 0) tt = TAC_EQ;
+            else {
+                fprintf(stderr, "CodeGen Error: Unknown binary operator '%s'\n", op);
+                free(left_val);
+                free(right_val);
+                free(t_res);
+                return NULL;
+            }
 
             // create and append the instruction to the TAC list
             tac_append(list, tac_create_instr(tt, t_res, left_val, right_val));
@@ -295,6 +302,20 @@ static void gen_method(Node* node, TacList* list) {
 
     char* func_name = node->children[0]->value;
     tac_append(list, tac_create_instr(TAC_FUNC_BEGIN, func_name, NULL, NULL));
+
+    // If the method has parameters, emit reception instructions for each formal parameter
+    if (node->child_count > 1 && node->children[1]->type == PARAM_LIST_NODE) {
+        Node* param_list = node->children[1];
+        if (!(param_list->value && strcmp(param_list->value, "empty") == 0)) {
+            for (int i = 0; i < param_list->child_count; i++) {
+                Node* param = param_list->children[i];
+                if (param->type == PARAMETER_NODE && param->child_count > 0) {
+                    char* p_tac_name = get_node_tac_name(param->children[0]);
+                    tac_append(list, tac_create_instr(TAC_RECV_PARAM, p_tac_name, NULL, NULL));
+                }
+            }
+        }
+    }
 
     // The method's body block is the last child
     Node* block_node = node->children[node->child_count - 1];

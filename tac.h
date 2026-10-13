@@ -22,6 +22,7 @@ typedef enum {
     TAC_LT,          // res = arg1 < arg2
     TAC_GT,          // res = arg1 > arg2
     TAC_PARAM,       // param arg1
+    TAC_RECV_PARAM,  // recv_param res
     TAC_CALL,        // res = call arg1, arg2
     TAC_CALL_VOID,   // call arg1, arg2
     TAC_RETURN,      // return arg1 (or return if arg1 is NULL)

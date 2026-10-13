@@ -1,0 +1,8 @@
+func begin f
+    t0 = 1
+    return t0
+func end f
+
+func begin main
+func end main
+
