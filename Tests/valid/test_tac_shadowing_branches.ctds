@@ -1,0 +1,38 @@
+// Caso borde: Variables homónimas en ramas paralelas y anidamiento multinivel
+int global_val;
+
+void testParallelBranches(boolean flag) {
+    if (flag) {
+        int a;
+        a = 10;
+        global_val = a;
+    } else {
+        int a;
+        a = 20;
+        global_val = a;
+    }
+}
+
+void testMultiLevelNesting() {
+    int x;
+    x = 1;
+    {
+        int x;
+        x = 2;
+        {
+            int x;
+            x = 3;
+            global_val = x;
+        }
+        global_val = x;
+    }
+    global_val = x;
+}
+
+void main() {
+    global_val = 0;
+    testParallelBranches(true);
+    testParallelBranches(false);
+    testMultiLevelNesting();
+    return;
+}

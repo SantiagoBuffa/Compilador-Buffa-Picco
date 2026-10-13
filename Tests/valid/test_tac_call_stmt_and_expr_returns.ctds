@@ -1,0 +1,21 @@
+// Caso borde: Descarte de retorno en llamada statement, múltiples parámetros y retorno de expresión compleja
+int computeFour(int a, int b, int c, int d) {
+    // Retorno directo de expresión aritmética compleja
+    return (a + b) * (c - d) / 2;
+}
+
+int addTwo(int x, int y) {
+    return x + y;
+}
+
+void main() {
+    int result;
+
+    // Caso 1: Llamada a método con retorno como sentencia simple (el valor se descarta)
+    computeFour(10, 20, 30, 40);
+
+    // Caso 2: Llamadas anidadas como argumentos de otra llamada (no recursivo)
+    result = computeFour(addTwo(1, 2), addTwo(3, 4), 10, 5);
+
+    return;
+}

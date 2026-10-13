@@ -1,0 +1,29 @@
+// Caso borde: Cortocircuito encadenado profundo con efectos colaterales
+int side_effects_count;
+
+boolean triggerSideEffect() {
+    side_effects_count = side_effects_count + 1;
+    return true;
+}
+
+void main() {
+    boolean res;
+    side_effects_count = 0;
+
+    // Primer caso: false en el primer término de && no debe ejecutar triggerSideEffect()
+    res = false && triggerSideEffect();
+
+    // Segundo caso: true en el primer término de || no debe ejecutar triggerSideEffect()
+    res = true || triggerSideEffect();
+
+    // Tercer caso: encadenamiento múltiple (a && b) || (c && d)
+    // Como (false && ...) es false, pasa a evaluar el lado derecho:
+    // Pero si el lado derecho empieza en false, tampoco ejecuta el segundo side effect
+    res = (false && triggerSideEffect()) || (false && triggerSideEffect());
+
+    // Cuarto caso: negaciones con cortocircuito
+    // !true es false, por lo que no debe ejecutar el side effect
+    res = !true && triggerSideEffect();
+
+    return;
+}

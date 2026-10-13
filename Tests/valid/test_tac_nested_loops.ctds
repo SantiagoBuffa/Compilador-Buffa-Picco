@@ -1,0 +1,24 @@
+// Caso borde: Bucles while anidados con sentencias vacías y modificaciones internas
+void main() {
+    int i, j, k;
+    int accumulator;
+
+    i = 0;
+    accumulator = 0;
+
+    while (i < 3) {
+        ; // Sentencia vacía permitida por la gramática
+        j = 0;
+        while (j < 3) {
+            k = 0;
+            while (k < 2) {
+                accumulator = accumulator + 1;
+                k = k + 1;
+            }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+
+    return;
+}
