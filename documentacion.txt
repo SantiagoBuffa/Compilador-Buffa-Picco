@@ -227,4 +227,3 @@ y las operaciones determinan el tipo resultante a partir de sus operandos. Esto 
 Los bloques se recorren hasta encontrar una sentencia que garantice el retorno, mientras que un if solo se considera completo cuando posee else y ambas ramas garantizan un return.
 
 - problemas conocidos:
-...

@@ -13,6 +13,7 @@ static void gen_stmt(Node* node, TacList* list);
 static void gen_method(Node* node, TacList* list);
 static void gen_declarations(Node* node, TacList* list);
 
+// aux function to get the TAC name from the symbol table
 static char* get_node_tac_name(Node* id_node) {
     if (!id_node) return NULL;
     if (id_node->symbol && id_node->symbol->tac_name) {
@@ -20,7 +21,7 @@ static char* get_node_tac_name(Node* id_node) {
     }
     return id_node->value;
 }
-
+// Generates TAC for an expression node, appends the instructions to the list, and returns the temporary variable holding the result
 static char* gen_expr(Node* node, TacList* list) {
     if (!node) return NULL;
 
@@ -141,6 +142,7 @@ static char* gen_expr(Node* node, TacList* list) {
             else if (strcmp(op, ">") == 0) tt = TAC_GT;
             else if (strcmp(op, "==") == 0) tt = TAC_EQ;
 
+            // create and append the instruction to the TAC list
             tac_append(list, tac_create_instr(tt, t_res, left_val, right_val));
             free(left_val);
             free(right_val);
@@ -152,6 +154,7 @@ static char* gen_expr(Node* node, TacList* list) {
     }
 }
 
+// Generates TAC for a statement node, appends the instructions to the list, and handles control flow constructs
 static void gen_stmt(Node* node, TacList* list) {
     if (!node) return;
 
@@ -286,7 +289,7 @@ static void gen_stmt(Node* node, TacList* list) {
             break;
     }
 }
-
+// Generates TAC for a method node, appends the instructions to the list, and handles the method's body
 static void gen_method(Node* node, TacList* list) {
     if (!node || node->type != METHOD_NODE) return;
 
@@ -301,7 +304,7 @@ static void gen_method(Node* node, TacList* list) {
 
     tac_append(list, tac_create_instr(TAC_FUNC_END, func_name, NULL, NULL));
 }
-
+// Generates TAC for the declarations node, appends the instructions to the list, and handles global variables and methods
 static void gen_declarations(Node* node, TacList* list) {
     if (!node) return;
 
@@ -319,7 +322,7 @@ static void gen_declarations(Node* node, TacList* list) {
         }
     }
 }
-
+// main function, generates TAC for the entire AST. returns a list of TAC instructions
 TacList* codegen_generate(Node *ast_root) {
     tac_reset_counters();
     TacList* list = tac_list_create();

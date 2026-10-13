@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-// Operation kinds in Three-Address Code (TAC)
+// Operation types in Three-Address Code (TAC)
 typedef enum {
     TAC_ADD,         // res = arg1 + arg2
     TAC_SUB,         // res = arg1 - arg2

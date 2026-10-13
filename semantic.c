@@ -1,21 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
 
 #include "semantic.h"
 #include "symtab.h"
 
 static Symbol* current_method = NULL;
-static int semantic_error_count = 0;
-
-static void report_error(const char* fmt, ...) {
-    semantic_error_count++;
-    va_list ap;
-    va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
-    va_end(ap);
-}
 
 // auxiliary functions
 static DataType str_to_dtype(const char* str) {
@@ -106,7 +96,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
             
             Symbol* sym = symtab_insert(func_name, ret_type, KIND_FUNC);
             if (!sym) {
-                report_error("Semantic Error: Function '%s' already declared.\n", func_name);
+                fprintf(stderr, "Semantic Error: Function '%s' already declared.\n", func_name);
             } else {
                 // has parameters
                 if (node->child_count > 1 && node->children[1]->type == PARAM_LIST_NODE) {
@@ -158,7 +148,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
                 char* var_name = node->children[i]->value;
                 Symbol* sym = symtab_insert(var_name, var_type, KIND_VAR);
                 if (!sym) {
-                    report_error("Semantic Error: Variable '%s' already declared in this scope.\n", var_name);
+                    fprintf(stderr, "Semantic Error: Variable '%s' already declared in this scope.\n", var_name);
                 }
                 node->children[i]->symbol = sym;
             }
@@ -172,7 +162,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
             char* param_name = node->children[0]->value;
             Symbol* sym = symtab_insert(param_name, param_type, KIND_PARAM);
             if (!sym) {
-                report_error("Semantic Error: Parameter '%s' already declared.\n", param_name);
+                fprintf(stderr, "Semantic Error: Parameter '%s' already declared.\n", param_name);
             }
             node->children[0]->symbol = sym;
         }
@@ -182,7 +172,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
         if (node->symbol == NULL) {
             Symbol* sym = symtab_lookup(node->value);
             if (!sym) {
-                report_error("Semantic Error: Identifier '%s' not declared.\n", node->value);
+                fprintf(stderr, "Semantic Error: Identifier '%s' not declared.\n", node->value);
             } else {
                 node->symbol = sym;
             }
@@ -192,9 +182,9 @@ static void traverse(Node* node, bool skip_scope_creation) {
         if (node->symbol == NULL) {
             Symbol* sym = symtab_lookup(node->value);
             if (!sym) {
-                report_error("Semantic Error: Function '%s' not declared.\n", node->value);
+                fprintf(stderr, "Semantic Error: Function '%s' not declared.\n", node->value);
             } else if (sym->kind != KIND_FUNC) {
-                report_error("Semantic Error: '%s' is not a function.\n", node->value);
+                fprintf(stderr, "Semantic Error: '%s' is not a function.\n", node->value);
             } else {
                 node->symbol = sym;
             }
@@ -242,7 +232,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
             while(p) { param_count++; p = p->next; }
 
             if (arg_count != param_count) {
-                report_error("Semantic Error: Function '%s' expects %d arguments, but %d were provided.\n", node->value, param_count, arg_count);
+                fprintf(stderr, "Semantic Error: Function '%s' expects %d arguments, but %d were provided.\n", node->value, param_count, arg_count);
             } else {
                 p = node->symbol->params;
                 for (int i = 0; i < arg_count; i++) {
@@ -256,7 +246,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
                                 fprintf(stderr, "Warning: Implicit coercion between %s and %s in argument %d of '%s'.\n", dtype_to_str(arg_expr->eval_type), dtype_to_str(p->type), i+1, node->value);
                             }
                         } else if (arg_expr->eval_type != TYPE_UNKNOWN && p->type != TYPE_UNKNOWN) {
-                            report_error("Semantic Error: Argument %d of '%s' expects %s, but got %s.\n", i+1, node->value, dtype_to_str(p->type), dtype_to_str(arg_expr->eval_type));
+                            fprintf(stderr, "Semantic Error: Argument %d of '%s' expects %s, but got %s.\n", i+1, node->value, dtype_to_str(p->type), dtype_to_str(arg_expr->eval_type));
                         }
                     }
                     p = p->next;
@@ -270,14 +260,14 @@ static void traverse(Node* node, bool skip_scope_creation) {
             // Rule 12: Logical operands must be boolean
             Node* expr = node->children[0];
             if (expr->eval_type != TYPE_BOOLEAN && expr->eval_type != TYPE_UNKNOWN) {
-                report_error("Semantic Error: Operand of '!' must be boolean, got %s.\n", dtype_to_str(expr->eval_type));
+                fprintf(stderr, "Semantic Error: Operand of '!' must be boolean, got %s.\n", dtype_to_str(expr->eval_type));
             }
             node->eval_type = TYPE_BOOLEAN;
         } else if (strcmp(op, "- (unary)") == 0) {
             // Rule 10: Arithmetic and relational operands must be int or float
             Node* expr = node->children[0];
             if (expr->eval_type != TYPE_INT && expr->eval_type != TYPE_FLOAT && expr->eval_type != TYPE_UNKNOWN) {
-                report_error("Semantic Error: Operand of unary '-' must be int or float, got %s.\n", dtype_to_str(expr->eval_type));
+                fprintf(stderr, "Semantic Error: Operand of unary '-' must be int or float, got %s.\n", dtype_to_str(expr->eval_type));
             }
             node->eval_type = expr->eval_type;
         } else {
@@ -288,33 +278,33 @@ static void traverse(Node* node, bool skip_scope_creation) {
                 // Rule 12: Logical operands must be boolean
                 if ((left->eval_type != TYPE_BOOLEAN && left->eval_type != TYPE_UNKNOWN) || 
                     (right->eval_type != TYPE_BOOLEAN && right->eval_type != TYPE_UNKNOWN)) {
-                    report_error("Semantic Error: Operands of '%s' must be boolean.\n", op);
+                    fprintf(stderr, "Semantic Error: Operands of '%s' must be boolean.\n", op);
                 }
                 node->eval_type = TYPE_BOOLEAN;
             } else if (strcmp(op, "==") == 0) {
                 // Rule 11: Operands of '==' must have the same type
                 if (left->eval_type != right->eval_type && left->eval_type != TYPE_UNKNOWN && right->eval_type != TYPE_UNKNOWN) {
-                    report_error("Semantic Error: Operands of '==' must have the same type, got %s and %s.\n", dtype_to_str(left->eval_type), dtype_to_str(right->eval_type));
+                    fprintf(stderr, "Semantic Error: Operands of '==' must have the same type, got %s and %s.\n", dtype_to_str(left->eval_type), dtype_to_str(right->eval_type));
                 }
                 node->eval_type = TYPE_BOOLEAN;
             } else if (strcmp(op, "<") == 0 || strcmp(op, ">") == 0) {
                 // Rule 10: Arithmetic and relational operands must be int or float
                 if ((left->eval_type != TYPE_INT && left->eval_type != TYPE_FLOAT && left->eval_type != TYPE_UNKNOWN) || 
                     (right->eval_type != TYPE_INT && right->eval_type != TYPE_FLOAT && right->eval_type != TYPE_UNKNOWN)) {
-                    report_error("Semantic Error: Operands of '%s' must be int or float.\n", op);
+                    fprintf(stderr, "Semantic Error: Operands of '%s' must be int or float.\n", op);
                 }
                 node->eval_type = TYPE_BOOLEAN;
             } else if (strcmp(op, "%") == 0) {
                 if ((left->eval_type != TYPE_INT && left->eval_type != TYPE_UNKNOWN) || 
                     (right->eval_type != TYPE_INT && right->eval_type != TYPE_UNKNOWN)) {
-                    report_error("Semantic Error: Operands of '%%' must be int.\n");
+                    fprintf(stderr, "Semantic Error: Operands of '%%' must be int.\n");
                 }
                 node->eval_type = TYPE_INT;
             } else if (strcmp(op, "+") == 0 || strcmp(op, "-") == 0 || strcmp(op, "*") == 0 || strcmp(op, "/") == 0) {
                 // Rule 10: Arithmetic and relational operands must be int or float
                 if ((left->eval_type != TYPE_INT && left->eval_type != TYPE_FLOAT && left->eval_type != TYPE_UNKNOWN) || 
                     (right->eval_type != TYPE_INT && right->eval_type != TYPE_FLOAT && right->eval_type != TYPE_UNKNOWN)) {
-                    report_error("Semantic Error: Operands of '%s' must be int or float.\n", op);
+                    fprintf(stderr, "Semantic Error: Operands of '%s' must be int or float.\n", op);
                 }
                 if (left->eval_type == TYPE_FLOAT || right->eval_type == TYPE_FLOAT) {
                     node->eval_type = TYPE_FLOAT;
@@ -331,7 +321,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
         if (id_node->symbol) {
             // Rule 8: Location must be a variable or parameter, not a function
             if (id_node->symbol->kind == KIND_FUNC) {
-                report_error("Semantic Error: Cannot assign to function '%s'.\n", id_node->value);
+                fprintf(stderr, "Semantic Error: Cannot assign to function '%s'.\n", id_node->value);
             } else {
                 DataType ltype = id_node->symbol->type;
                 DataType rtype = expr_node->eval_type;
@@ -344,7 +334,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
                             fprintf(stderr, "Warning: Implicit coercion in assignment to '%s'.\n", id_node->value);
                         }
                     } else {
-                        report_error("Semantic Error: Type mismatch in assignment to '%s' (expected %s, got %s).\n", 
+                        fprintf(stderr, "Semantic Error: Type mismatch in assignment to '%s' (expected %s, got %s).\n", 
                             id_node->value, dtype_to_str(ltype), dtype_to_str(rtype));
                     }
                 }
@@ -352,7 +342,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
         }
         
         if (expr_node->type == CALL_NODE && expr_node->eval_type == TYPE_VOID) {
-            report_error("Semantic Error: Method '%s' used as an expression must return a value.\n", expr_node->value);
+            fprintf(stderr, "Semantic Error: Method '%s' used as an expression must return a value.\n", expr_node->value);
         }
     }
     else if (node->type == RETURN_NODE) {
@@ -362,11 +352,11 @@ static void traverse(Node* node, bool skip_scope_creation) {
         if (expected_ret == TYPE_VOID) {
             // Rule 6: Return in void method cannot have an expression
             if (expr_node != NULL) {
-                report_error("Semantic Error: Void method '%s' cannot return a value.\n", current_method ? current_method->name : "unknown");
+                fprintf(stderr, "Semantic Error: Void method '%s' cannot return a value.\n", current_method ? current_method->name : "unknown");
             }
         } else {
             if (expr_node == NULL) {
-                report_error("Semantic Error: Non-void method '%s' must return a value of type %s.\n", 
+                fprintf(stderr, "Semantic Error: Non-void method '%s' must return a value of type %s.\n", 
                         current_method ? current_method->name : "unknown", dtype_to_str(expected_ret));
             } else {
                 // Rule 7: Return expression must match the method's return type
@@ -379,7 +369,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
                             fprintf(stderr, "Warning: Implicit coercion in return statement.\n");
                         }
                     } else {
-                        report_error("Semantic Error: Type mismatch in return statement (expected %s, got %s).\n", 
+                        fprintf(stderr, "Semantic Error: Type mismatch in return statement (expected %s, got %s).\n", 
                             dtype_to_str(expected_ret), dtype_to_str(expr_node->eval_type));
                     }
                 }
@@ -390,7 +380,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
         // Rule 9: Expression in if or while must be boolean
         Node* expr_node = node->children[0];
         if (expr_node->eval_type != TYPE_BOOLEAN && expr_node->eval_type != TYPE_UNKNOWN) {
-            report_error("Semantic Error: Condition of '%s' must be boolean, got %s.\n", 
+            fprintf(stderr, "Semantic Error: Condition of '%s' must be boolean, got %s.\n", 
                 node->type == IF_NODE ? "if" : "while", dtype_to_str(expr_node->eval_type));
         }
     }
@@ -400,7 +390,7 @@ static void traverse(Node* node, bool skip_scope_creation) {
             // The block node is the last child of METHOD_NODE
             Node* block_node = node->children[node->child_count - 1];
             if (!check_all_paths_return(block_node)) {
-                report_error("Semantic Error: Function '%s' must return a value of type %s in all control paths.\n", 
+                fprintf(stderr, "Semantic Error: Function '%s' must return a value of type %s in all control paths.\n", 
                     current_method->name, dtype_to_str(current_method->type));
             }
         }
@@ -415,18 +405,16 @@ static void traverse(Node* node, bool skip_scope_creation) {
     current_method = saved_method;
 }
 
-int analyze_semantics(Node* root) {
-    semantic_error_count = 0;
+void analyze_semantics(Node* root) {
     traverse(root, false);
 
     // Rule 3: Check for main function without parameters
     Symbol* main_sym = symtab_lookup("main");
     if (!main_sym) {
-        report_error("Semantic Error: Method 'main' is missing.\n");
+        fprintf(stderr, "Semantic Error: Method 'main' is missing.\n");
     } else if (main_sym->kind != KIND_FUNC) {
-        report_error("Semantic Error: 'main' must be a function.\n");
+        fprintf(stderr, "Semantic Error: 'main' must be a function.\n");
     } else if (main_sym->params != NULL) {
-        report_error("Semantic Error: Method 'main' must not have parameters.\n");
+        fprintf(stderr, "Semantic Error: Method 'main' must not have parameters.\n");
     }
-    return semantic_error_count;
 }

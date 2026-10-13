@@ -6,6 +6,7 @@
 static int temp_counter = 0;
 static int label_counter = 0;
 
+// creates empty tac list
 TacList* tac_list_create(void) {
     TacList *list = (TacList*)malloc(sizeof(TacList));
     if (!list) {
@@ -18,6 +19,7 @@ TacList* tac_list_create(void) {
     return list;
 }
 
+// creates a Three Adress Code instruction based on type and arguments
 TacInstr* tac_create_instr(TacType type, const char *res, const char *arg1, const char *arg2) {
     TacInstr *instr = (TacInstr*)malloc(sizeof(TacInstr));
     if (!instr) {
@@ -33,6 +35,7 @@ TacInstr* tac_create_instr(TacType type, const char *res, const char *arg1, cons
     return instr;
 }
 
+// adds a TAC instruction to the end of the list
 void tac_append(TacList *list, TacInstr *instr) {
     if (!list || !instr) return;
     if (list->head == NULL) {
@@ -49,6 +52,7 @@ void tac_append(TacList *list, TacInstr *instr) {
     list->count++;
 }
 
+// concatenates two TAC lists, appending src to dest and clearing src
 void tac_concat(TacList *dest, TacList *src) {
     if (!dest || !src || src->head == NULL) return;
     if (dest->head == NULL) {
@@ -65,6 +69,7 @@ void tac_concat(TacList *dest, TacList *src) {
     src->count = 0;
 }
 
+// frees the TAC list
 void tac_free(TacList *list) {
     if (!list) return;
     TacInstr *curr = list->head;
@@ -79,6 +84,7 @@ void tac_free(TacList *list) {
     free(list);
 }
 
+// prints the TAC list to a file
 void tac_print(FILE *out, TacList *list) {
     if (!list || !out) return;
     TacInstr *instr = list->head;
@@ -160,18 +166,21 @@ void tac_print(FILE *out, TacList *list) {
         instr = instr->next;
     }
 }
+// generates a new temporary variable name
 
 char* new_temp(void) {
     char buf[64];
     snprintf(buf, sizeof(buf), "t%d", temp_counter++);
     return strdup(buf);
 }
+// generates a new label name
 
 char* new_label(void) {
     char buf[64];
     snprintf(buf, sizeof(buf), "L%d", label_counter++);
     return strdup(buf);
 }
+// resets the temporary variable and label counters
 
 void tac_reset_counters(void) {
     temp_counter = 0;
