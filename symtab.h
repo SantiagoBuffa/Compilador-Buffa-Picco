@@ -32,6 +32,9 @@ typedef struct Symbol {
     DataType type;
     SymbolKind kind;
     
+    // Unique identifier for Intermediate Code (TAC)
+    char* tac_name;
+
     // If it is a function, stores its parameters
     ParamList* params;
     

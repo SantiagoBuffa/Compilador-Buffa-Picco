@@ -6,11 +6,14 @@
 #include "estructuras.h"
 #include "symtab.h"
 #include "semantic.h"
+#include "tac.h"
+#include "codegen.h"
 
 extern FILE *yyin;
 int yylex(void);
 void yyerror(const char *s);
-extern int yylineno; 
+extern int yylineno;
+extern int lexic_error_count; 
 
 Node *ast_root = NULL;
 
@@ -306,18 +309,49 @@ void yyerror(const char *s) {
 
 int main(int argc, char** argv) {
   symtab_init();
+  char* input_filename = NULL;
   ++argv, --argc;
-  if (argc > 0)
-    yyin = fopen(argv[0], "r");
-  else
+  if (argc > 0) {
+    input_filename = argv[0];
+    yyin = fopen(input_filename, "r");
+    if (!yyin) {
+      fprintf(stderr, "Error: could not open file %s\n", input_filename);
+      return 1;
+    }
+  } else {
     yyin = stdin;
+  }
 
   if (yyparse() == 0) {
       printf("successful parsing.\n\n");
       printf("=== AST ===\n");
       printAST(ast_root);
       printf("\n=== SEMANTIC ANALYSIS & SYMTAB ===\n");
-      analyze_semantics(ast_root);
+      int sem_errors = analyze_semantics(ast_root);
+      if (sem_errors == 0 && lexic_error_count == 0) {
+          printf("\n=== INTERMEDIATE CODE (TAC) ===\n");
+          TacList *tac = codegen_generate(ast_root);
+          tac_print(stdout, tac);
+
+          if (input_filename != NULL) {
+              char ci_filename[512];
+              strncpy(ci_filename, input_filename, sizeof(ci_filename) - 1);
+              ci_filename[sizeof(ci_filename) - 1] = '\0';
+              char *dot = strrchr(ci_filename, '.');
+              if (dot) {
+                  strcpy(dot, ".ci");
+              } else {
+                  strncat(ci_filename, ".ci", sizeof(ci_filename) - strlen(ci_filename) - 1);
+              }
+              FILE *f_ci = fopen(ci_filename, "w");
+              if (f_ci) {
+                  tac_print(f_ci, tac);
+                  fclose(f_ci);
+                  printf("\n[Archivo .ci generado: %s]\n", ci_filename);
+              }
+          }
+          tac_free(tac);
+      }
       freeAST(ast_root);
   }
   return 0;
