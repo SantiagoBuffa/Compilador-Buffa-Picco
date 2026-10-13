@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 echo "==============================="
 echo "       COMPILING COMPILER      "
 echo "==============================="
-flex scanner.lex && bison -d parser.y && gcc lex.yy.c parser.tab.c estructuras.c symtab.c semantic.c -o compilador_test -lm
+flex scanner.lex && bison -d parser.y && gcc lex.yy.c parser.tab.c estructuras.c symtab.c semantic.c tac.c codegen.c -o compilador_test -lm
 if [ $? -ne 0 ]; then
     echo "Error de compilación"
     exit 1
@@ -16,7 +16,7 @@ fail=0
 echo -e "\n==============================="
 echo "       TESTS VÁLIDOS           "
 echo "==============================="
-for file in Tests/valid/*; do
+for file in Tests/valid/*.ctds; do
     if [ ! -f "$file" ]; then continue; fi
     echo -e "\n--- Analizando: $file ---"
     out=$(./compilador_test "$file" 2>&1)
@@ -34,7 +34,7 @@ done
 echo -e "\n==============================="
 echo "       TESTS INVÁLIDOS         "
 echo "==============================="
-for file in Tests/invalid/*; do
+for file in Tests/invalid/*.ctds; do
     if [ ! -f "$file" ]; then continue; fi
     echo -e "\n--- Analizando: $file ---"
     out=$(./compilador_test "$file" 2>&1)

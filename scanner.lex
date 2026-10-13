@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include "symtab.h"
 #include "parser.tab.h"
+int lexic_error_count = 0;
 %}
 
 %option yylineno
@@ -73,6 +74,7 @@ id     {alpha}{alpha_num}*
     long long valor = strtoll(yytext, NULL, 10);
 
     if (valor > 2147483647) {
+        lexic_error_count++;
         printf("Lexic error in line %d: out of bounds Integer '%s'\n",
                yylineno, yytext);
     } else {
@@ -92,6 +94,7 @@ id     {alpha}{alpha_num}*
 <COMMENT>.      ;
 
 <COMMENT><<EOF>> {
+    lexic_error_count++;
     printf("Lexic error in line %d: unclosed comment\n", yylineno);
     return 0;
 }
@@ -100,6 +103,7 @@ id     {alpha}{alpha_num}*
 
 [ \t\n]+      ; /* Ignores empty spaces and line jumps */
 . {
+    lexic_error_count++;
     printf("Lexic error in line %d: Unrecognized symbol '%s'\n",
            yylineno, yytext);
     return 256;

@@ -12,7 +12,10 @@ typedef struct ScopeNode {
 // Pointer to top of stack (current scope)
 static ScopeNode* top_scope = NULL;
 
+static int local_counter = 0;
+
 void symtab_init() {
+    local_counter = 0;
     // Clean up any existing scopes to avoid basic memory leaks
     while (top_scope != NULL) {
         symtab_exit_scope();
@@ -66,6 +69,17 @@ Symbol* symtab_insert(char* name, DataType type, SymbolKind kind) {
     new_symbol->kind = kind;
     new_symbol->params = NULL;
     new_symbol->next = NULL;
+
+    // Assign unique name for Intermediate Code (TAC)
+    if (top_scope->prev == NULL || kind == KIND_FUNC) {
+        // Global variables and function names keep their original identifier
+        new_symbol->tac_name = strdup(name);
+    } else {
+        // Local variables and parameters get unique names to avoid collisions/shadowing
+        char buf[128];
+        snprintf(buf, sizeof(buf), "%s_%d", name, ++local_counter);
+        new_symbol->tac_name = strdup(buf);
+    }
     
     // Insert at the end of current scope's list to preserve order
     if (top_scope->symbols == NULL) {
