@@ -163,7 +163,7 @@ se elimina, permitiendo que las búsquedas comiencen siempre desde el entorno m�
 2) ETAPA: análisis semántico
 
 - división de trabajo:
-
+aproximadamente 50/50
 
 - diseño:
 
@@ -225,5 +225,79 @@ y las operaciones determinan el tipo resultante a partir de sus operandos. Esto 
 
 . Para verificar que los métodos que retornan un valor posean un return en todos los caminos de ejecución, se implementó un recorrido recursivo del AST. 
 Los bloques se recorren hasta encontrar una sentencia que garantice el retorno, mientras que un if solo se considera completo cuando posee else y ambas ramas garantizan un return.
+
+- problemas conocidos:
+
+3) ETAPA:  generación de código intermedio
+
+- división de trabajo:
+
+- diseño:
+
+. la generación de la lista de instrucciones TAC se va a aplicar siguiendo los nodos del AST. De momento generará un archivo de texto
+con el código generado y la estructura de datos dentro de C para poder trabajar sobre ella más adelante. Esto permite aprovechar
+la información ya generada anteriormente (tabla de símbolos, árbol) para tratar el código intermedio.
+
+. agregamos a la tabla de símbolos un campo char* tac_name, sirve para obtener durante la generación de código intermedio 
+y permitir que cada identificador sea único sin importar que haya varios símbolos iguales en distintos niveles de entorno.
+
+. el flujo de trabajo consiste en recorrer el AST (buscando información de la tabla de símbolos para los ID), e ir formando una lista 
+de instrucciones de TAC, partiendo desde la raíz y siguiendo a través de las ramas.
+
+. las instrucciones TAC tienen un campo type que se emplearía en un switch para determinar que lineas se escribirían según la operación.
+ej: si el tipo es suma se imprime algo como t0 = a + b, si es una estructura de control se imprime algo diferente.
+
+. organizamos las traducciones en funciones según que categoría sean.
+* gen_expr(): genera instrucciones para expresiones y devuelve el nombre que contiene su resultado.
+
+* gen_stmt(): genera asignaciones, llamadas, estructuras de control, retornos y bloques.
+
+* gen_method(): genera el comienzo y el final de cada método, sus parámetros y su cuerpo.
+
+* gen_declarations(): procesa las declaraciones globales y los métodos.
+
+* codegen_generate(): inicializa la generación y comienza el recorrido desde PROGRAM_NODE.
+
+. Utilizamos tags temporales (t0, t1, etc) para descomponer operaciones que tengan más de 2 operandos.
+con la función new_temp se genera uno nuevo.
+
+. Decidimos representar los literales booleanos true y false como 1 y 0 en el código intermedio debido a que las instrucciones
+condicionales necesitan una representación consistente para decidir si realizan un salto.
+
+. Decidimos implementar los operadores lógicos && y || mediante saltos condicionales en lugar de 
+evaluar siempre ambos operandos debido a que su semántica permite omitir la evaluación del segundo operando cuando el resultado ya está determinado por el primero.
+
+. Decidimos traducir las estructuras if, if-else y while mediante etiquetas y saltos explícitos debido a que el código intermedio debe representar 
+los distintos caminos de ejecución sin depender de las estructuras sintácticas originales.
+
+. Decidimos representar las asignaciones y los retornos mediante instrucciones independientes debido a que ambos son 
+efectos propios de las sentencias y deben distinguirse de las operaciones que calculan expresiones.
+
+. Decidimos delegar la implementación de las sumas entre enteros y flotantes para la etapa de generación de assembly,
+de momento tratamos todas las sumas por igual en el código intermedio.
+
+- detalles de implementación:
+
+. la estructura de los elementos de TAC es (tipo, resultado, izq, der)
+    - tipo es el tipo de operación / instrucción
+    - resultado es el espacio donde se almacena la operación de tres direcciones
+    - izquierda es el primer operando
+    - derecha es el segundo operando
+ej: (suma, t1, x, y)
+
+. la lista de las instrucciones TAC es una lista enlazada bastante simple.
+
+. implementamos una función que recorriendo la lista de instrucciones construya su representación en un archivo de texto.
+
+. para el corto circuito de los operadores lógicos && || utilizamos saltos a una etiqueta final si ya se puede conocer el resultado final
+y todavía hay expresiones para evaluar
+
+. implementación estructuras de control:
+* En un if sin else, se genera la condición, un salto condicional hacia la etiqueta final y el cuerpo del bloque.
+
+* En un if-else, se genera un salto al comienzo del else si la condición es falsa, un salto incondicional para evitar ejecutar ambos bloques y una etiqueta de finalización.
+
+* En un while, se genera una etiqueta de inicio, se evalúa la condición, se salta al final si es falsa, se ejecuta el cuerpo y se vuelve al inicio mediante TAC_GOTO.
+
 
 - problemas conocidos:
