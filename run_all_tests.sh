@@ -22,8 +22,24 @@ for file in Tests/valid/*.ctds; do
     out=$(./compilador_test "$file" 2>&1)
     echo "$out"
     if echo "$out" | grep -q "successful parsing" && ! echo "$out" | grep -q "Semantic Error"; then
-        echo -e "[\e[32mPASS\e[0m] $file"
-        pass=$((pass+1))
+        base_name=$(basename "$file" .ctds)
+        expected_ci="Tests/expected/${base_name}.ci"
+        generated_ci="Tests/valid/${base_name}.ci"
+
+        if [ -f "$expected_ci" ]; then
+            diff_output=$(diff -u -w -B "$generated_ci" "$expected_ci" 2>&1)
+            if [ $? -eq 0 ]; then
+                echo -e "[\e[32mPASS\e[0m] $file (TAC verificado con golden file)"
+                pass=$((pass+1))
+            else
+                echo -e "[\e[31mFAIL\e[0m] $file (TAC generado difiere de $expected_ci)"
+                echo -e "       \e[33mDiff:\n$diff_output\e[0m"
+                fail=$((fail+1))
+            fi
+        else
+            echo -e "[\e[32mPASS\e[0m] $file (Sin golden file)"
+            pass=$((pass+1))
+        fi
     else
         echo -e "[\e[31mFAIL\e[0m] $file"
         echo -e "       \e[33mDetalle: $(echo "$out" | grep -E 'Error|Lexic error|Semantic Error' | head -n 1)\e[0m"

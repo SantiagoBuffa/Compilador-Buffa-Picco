@@ -1,0 +1,51 @@
+global global_f
+func begin operar
+    recv_param a_1
+    recv_param b_2
+    t0 = a_1 + b_2
+    t1 = a_1 - b_2
+    t2 = t0 * t1
+    t3 = 2.0
+    t4 = t2 / t3
+    res_3 = t4
+    return res_3
+func end operar
+
+func begin comparar
+    recv_param x_4
+    recv_param y_5
+    t5 = x_4 < y_5
+    return t5
+func end comparar
+
+func begin esIgual
+    recv_param x_6
+    recv_param y_7
+    t6 = x_6 == y_7
+    return t6
+func end esIgual
+
+func begin main
+    t7 = 10.5
+    global_f = t7
+    t8 = 2.5
+    f1_8 = t8
+    t9 = 1.25
+    t10 = - t9
+    f2_9 = t10
+    param f1_8
+    param f2_9
+    t11 = call operar, 2
+    f3_10 = t11
+    param f1_8
+    param global_f
+    t12 = call comparar, 2
+    b1_11 = t12
+    t13 = 10.0
+    param f3_10
+    param t13
+    t14 = call esIgual, 2
+    b2_12 = t14
+    return
+func end main
+

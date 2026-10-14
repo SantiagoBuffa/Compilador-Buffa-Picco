@@ -1,0 +1,42 @@
+// Test de operaciones con flotantes en Código Intermedio (TAC):
+// - Variables globales y locales float
+// - Parámetros y retornos float
+// - Operaciones aritméticas (+, -, *, /) y menos unario con floats
+// - Comparaciones relacionales (<, >) e igualdad (==) entre floats
+
+float global_f;
+
+float operar(float a, float b) {
+    float res;
+    // Operaciones combinadas con floats
+    res = (a + b) * (a - b) / 2.0;
+    return res;
+}
+
+boolean comparar(float x, float y) {
+    // Comparación relacional entre floats
+    return x < y;
+}
+
+boolean esIgual(float x, float y) {
+    // Comparación de igualdad entre floats
+    return x == y;
+}
+
+void main() {
+    float f1, f2, f3;
+    boolean b1, b2;
+
+    global_f = 10.5;
+    f1 = 2.5;
+    f2 = -1.25;
+
+    // Llamada con parámetros float y asignación de retorno float
+    f3 = operar(f1, f2);
+
+    // Comparaciones entre floats
+    b1 = comparar(f1, global_f);
+    b2 = esIgual(f3, 10.0);
+
+    return;
+}

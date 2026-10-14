@@ -1,0 +1,5 @@
+func begin main
+    t0 = 1
+    var_1_1 = t0
+func end main
+

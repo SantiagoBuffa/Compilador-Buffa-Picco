@@ -1,0 +1,5 @@
+// Test semántico inválido: el operador unario menos '-' no puede aplicarse a booleanos
+void main() {
+    boolean b;
+    b = -true;
+}

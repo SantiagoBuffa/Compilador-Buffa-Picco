@@ -1,0 +1,54 @@
+// Test de negación y operador unario menos (-) en Código Intermedio (TAC):
+// - Literales negativos enteros y flotantes (-42, -3.14159)
+// - Negación unaria de variables y parámetros (-x, -y)
+// - Doble y triple negación unaria (-(-x), -(-(-x)))
+// - Negación unaria de expresiones agrupadas con paréntesis (-(x + 10))
+// - Combinación de resta binaria y menos unario (x - -res_i)
+// - Expresiones negativas como argumentos y valores de retorno
+
+int g_int;
+float g_flt;
+
+int calc(int x, float y) {
+    int res_i;
+    float res_f;
+
+    // Literales negativos
+    res_i = -42;
+    res_f = -3.14159;
+
+    // Negación de parámetros
+    res_i = -x;
+    res_f = -y;
+
+    // Doble y triple negación
+    res_i = -(-x);
+    res_i = -(-(-x));
+
+    // Negación de expresiones compuestas
+    res_i = -(x + 10);
+    res_f = -(y * 2.0);
+
+    // Combinación de resta binaria con menos unario
+    res_i = x - -res_i;
+    res_i = (x + -5) * -(res_i - 2);
+
+    return -res_i;
+}
+
+void main() {
+    int a;
+    float f;
+    int r;
+
+    g_int = -100;
+    g_flt = -0.5;
+
+    a = -7;
+    f = -2.5;
+
+    // Llamada pasando argumentos con negación unaria
+    r = calc(-a, -(f + 1.0));
+
+    return;
+}

@@ -1,0 +1,40 @@
+func begin main
+    t0 = 1
+    t1 = 2
+    t2 = t0 + t1
+    t3 = 3
+    t4 = 4
+    t5 = t3 * t4
+    t6 = 5
+    t7 = t5 / t6
+    t8 = 6
+    t9 = t7 % t8
+    t10 = t2 - t9
+    a_1 = t10
+    t13 = 1
+    t12 = t13
+    if_false t12 goto L1
+    t14 = 0
+    t12 = t14
+L1:
+    t11 = t12
+    if t11 goto L0
+    t15 = 1
+    t16 = ! t15
+    t11 = t16
+L0:
+    c_3 = t11
+    t19 = a_1 < b_2
+    t18 = t19
+    if t18 goto L3
+    t20 = a_1 > b_2
+    t18 = t20
+L3:
+    t17 = t18
+    if t17 goto L2
+    t21 = a_1 == b_2
+    t17 = t21
+L2:
+    d_4 = t17
+func end main
+
