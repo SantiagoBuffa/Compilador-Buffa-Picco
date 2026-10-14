@@ -231,6 +231,7 @@ Los bloques se recorren hasta encontrar una sentencia que garantice el retorno, 
 3) ETAPA:  generación de código intermedio
 
 - división de trabajo:
+aproximadamente 50/50. tests by Valentino Picco
 
 - diseño:
 
