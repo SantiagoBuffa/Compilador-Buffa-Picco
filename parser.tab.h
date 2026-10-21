@@ -68,10 +68,11 @@ extern int yydebug;
     OR = 269,                      /* OR  */
     NOT = 270,                     /* NOT  */
     EQUALS = 271,                  /* EQUALS  */
-    ID = 272,                      /* ID  */
-    INT_LITERAL = 273,             /* INT_LITERAL  */
-    FLOAT_LITERAL = 274,           /* FLOAT_LITERAL  */
-    UMINUS = 275                   /* UMINUS  */
+    EXTERN = 272,                  /* EXTERN  */
+    ID = 273,                      /* ID  */
+    INT_LITERAL = 274,             /* INT_LITERAL  */
+    FLOAT_LITERAL = 275,           /* FLOAT_LITERAL  */
+    UMINUS = 276                   /* UMINUS  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -86,7 +87,7 @@ union YYSTYPE
     struct Node *node;
     DataType data_type;
 
-#line 90 "parser.tab.h"
+#line 91 "parser.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

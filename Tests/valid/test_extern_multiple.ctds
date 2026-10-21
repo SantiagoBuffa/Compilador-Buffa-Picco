@@ -1,0 +1,14 @@
+extern void print_int(int val);
+extern float sqrt_approx(float x);
+extern boolean is_even(int n);
+
+int count;
+
+void main() {
+    float f;
+    boolean b;
+    count = 4;
+    b = is_even(count);
+    f = sqrt_approx(16.0);
+    print_int(count);
+}

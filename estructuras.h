@@ -16,6 +16,7 @@ typedef enum {
     
     VAR_DECL_NODE,
     METHOD_NODE,
+    EXTERN_METHOD_NODE,
     PARAMETER_NODE,
     BLOCK_NODE,
     

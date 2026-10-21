@@ -1,0 +1,4 @@
+extern int suma(int a, int a);
+
+void main() {
+}

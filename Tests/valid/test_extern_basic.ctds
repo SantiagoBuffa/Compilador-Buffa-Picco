@@ -1,0 +1,11 @@
+extern int suma(int a, int b);
+
+int global_res;
+
+void main() {
+    int x;
+    int y;
+    x = 10;
+    y = 20;
+    global_res = suma(x, y);
+}

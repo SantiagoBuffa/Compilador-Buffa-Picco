@@ -67,6 +67,7 @@ Symbol* symtab_insert(char* name, DataType type, SymbolKind kind) {
     new_symbol->name = strdup(name);
     new_symbol->type = type;
     new_symbol->kind = kind;
+    new_symbol->is_extern = false;
     new_symbol->params = NULL;
     new_symbol->next = NULL;
 
@@ -150,7 +151,11 @@ void symtab_print() {
             printf("  (empty)\n");
         }
         while (sym != NULL) {
-            printf("  - %s (Type: %s)\n", sym->name, get_type_name(sym->type));
+            if (sym->is_extern) {
+                printf("  - %s (Type: %s, Extern)\n", sym->name, get_type_name(sym->type));
+            } else {
+                printf("  - %s (Type: %s)\n", sym->name, get_type_name(sym->type));
+            }
             sym = sym->next;
         }
     }

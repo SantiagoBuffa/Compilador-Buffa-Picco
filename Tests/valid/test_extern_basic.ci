@@ -1,0 +1,13 @@
+extern suma
+global global_res
+func begin main
+    t0 = 10
+    x_1 = t0
+    t1 = 20
+    y_2 = t1
+    param x_1
+    param y_2
+    t2 = call suma, 2
+    global_res = t2
+func end main
+

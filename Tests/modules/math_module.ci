@@ -1,0 +1,14 @@
+func begin suma
+    recv_param a_1
+    recv_param b_2
+    t0 = a_1 + b_2
+    return t0
+func end suma
+
+func begin multiplica
+    recv_param x_3
+    recv_param y_4
+    t1 = x_3 * y_4
+    return t1
+func end multiplica
+

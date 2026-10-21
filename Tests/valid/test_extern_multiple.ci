@@ -1,0 +1,18 @@
+extern print_int
+extern sqrt_approx
+extern is_even
+global count
+func begin main
+    t0 = 4
+    count = t0
+    param count
+    t1 = call is_even, 1
+    b_2 = t1
+    t2 = 16.0
+    param t2
+    t3 = call sqrt_approx, 1
+    f_1 = t3
+    param count
+    call print_int, 1
+func end main
+

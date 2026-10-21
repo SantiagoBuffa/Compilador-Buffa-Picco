@@ -31,6 +31,7 @@ typedef struct Symbol {
     char* name;
     DataType type;
     SymbolKind kind;
+    bool is_extern;
     
     // Unique identifier for Intermediate Code (TAC)
     char* tac_name;

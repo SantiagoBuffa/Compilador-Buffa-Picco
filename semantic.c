@@ -95,6 +95,65 @@ static void traverse(Node* node, bool skip_scope_creation) {
 
     Symbol* saved_method = current_method;
 
+    if (node->type == EXTERN_METHOD_NODE) {
+        if (node->child_count > 0 && node->children[0]->type == ID_NODE) {
+            char* func_name = node->children[0]->value;
+            DataType ret_type = str_to_dtype(node->value);
+            
+            if (strcmp(func_name, "main") == 0) {
+                fprintf(stderr, "Semantic Error: Method 'main' cannot be declared as extern.\n");
+            }
+            
+            Symbol* sym = symtab_insert(func_name, ret_type, KIND_FUNC);
+            if (!sym) {
+                fprintf(stderr, "Semantic Error: Function '%s' already declared.\n", func_name);
+            } else {
+                sym->is_extern = true;
+                if (node->child_count > 1 && node->children[1]->type == PARAM_LIST_NODE) {
+                    Node* param_list = node->children[1];
+                    ParamList* head = NULL;
+                    ParamList* tail = NULL;
+                    for (int i = 0; i < param_list->child_count; i++) {
+                        Node* param = param_list->children[i];
+                        if (param->type == PARAMETER_NODE) {
+                            DataType ptype = str_to_dtype(param->value);
+                            char* pname = param->children[0]->value;
+                            
+                            // Check for duplicate parameter names
+                            ParamList* check = head;
+                            bool dup = false;
+                            while (check) {
+                                if (strcmp(check->name, pname) == 0) {
+                                    fprintf(stderr, "Semantic Error: Parameter '%s' already declared.\n", pname);
+                                    dup = true;
+                                    break;
+                                }
+                                check = check->next;
+                            }
+                            
+                            if (!dup) {
+                                ParamList* p = malloc(sizeof(ParamList));
+                                p->type = ptype;
+                                p->name = strdup(pname);
+                                p->next = NULL;
+                                if (!head) {
+                                    head = p;
+                                    tail = p;
+                                } else {
+                                    tail->next = p;
+                                    tail = p;
+                                }
+                            }
+                        }
+                    }
+                    sym->params = head;
+                }
+            }
+            node->children[0]->symbol = sym;
+        }
+        return;
+    }
+
     // Function must be inserted in the current (global) scope before creating the method's inner scope
     // method declaration
     if (node->type == METHOD_NODE) {
@@ -413,18 +472,20 @@ static void traverse(Node* node, bool skip_scope_creation) {
     current_method = saved_method;
 }
 
-int analyze_semantics(Node* root) {
+int analyze_semantics(Node* root, bool require_main) {
     semantic_error_count = 0;
     traverse(root, false);
 
-    // Rule 3: Check for main function without parameters
-    Symbol* main_sym = symtab_lookup("main");
-    if (!main_sym) {
-        fprintf(stderr, "Semantic Error: Method 'main' is missing.\n");
-    } else if (main_sym->kind != KIND_FUNC) {
-        fprintf(stderr, "Semantic Error: 'main' must be a function.\n");
-    } else if (main_sym->params != NULL) {
-        fprintf(stderr, "Semantic Error: Method 'main' must not have parameters.\n");
+    if (require_main) {
+        // Rule 3: Check for main function without parameters
+        Symbol* main_sym = symtab_lookup("main");
+        if (!main_sym || main_sym->is_extern) {
+            fprintf(stderr, "Semantic Error: Method 'main' is missing.\n");
+        } else if (main_sym->kind != KIND_FUNC) {
+            fprintf(stderr, "Semantic Error: 'main' must be a function.\n");
+        } else if (main_sym->params != NULL) {
+            fprintf(stderr, "Semantic Error: Method 'main' must not have parameters.\n");
+        }
     }
     return semantic_error_count;
 }

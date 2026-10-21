@@ -163,6 +163,9 @@ void tac_print(FILE *out, TacList *list) {
             case TAC_GLOBAL_VAR:
                 fprintf(out, "global %s\n", instr->res);
                 break;
+            case TAC_EXTERN:
+                fprintf(out, "extern %s\n", instr->res);
+                break;
             default:
                 break;
         }

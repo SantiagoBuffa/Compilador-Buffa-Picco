@@ -1,0 +1,6 @@
+extern int suma(int a, int b);
+
+void main() {
+    int res;
+    res = suma(10);
+}

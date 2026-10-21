@@ -93,6 +93,7 @@ const char *typeName(NodeType type) {
         case PROGRAM_NODE:    return "PROGRAM";
         case VAR_DECL_NODE:    return "VAR_DECL";
         case METHOD_NODE:      return "METHOD";
+        case EXTERN_METHOD_NODE: return "EXTERN_METHOD";
         case PARAMETER_NODE:   return "PARAMETER";
         case BLOCK_NODE:      return "BLOCK";
 

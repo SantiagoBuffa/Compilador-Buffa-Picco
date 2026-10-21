@@ -40,6 +40,7 @@ const char* dtype_to_str(DataType t) {
 %token IF ELSE WHILE RETURN
 %token TRUE FALSE
 %token AND OR NOT EQUALS
+%token EXTERN
 %token <text> ID INT_LITERAL FLOAT_LITERAL
 
 /* Operator Precedence and Associativity */
@@ -52,7 +53,9 @@ const char* dtype_to_str(DataType t) {
 
 /* Rule declarations */
 %type <node> program
-%type <node> declarations
+%type <node> extern_decl_list
+%type <node> extern_decl
+%type <node> global_declarations
 %type <node> var_decl
 %type <node> block
 %type <node> statement
@@ -78,15 +81,45 @@ const char* dtype_to_str(DataType t) {
 /* Grammar rules */
 
 program:
-    declarations {
+    extern_decl_list global_declarations {
         $$ = createNode(PROGRAM_NODE, NULL);
-        addChild($$, $1);
+        Node *decls = createNode(DECLARATIONS_NODE, NULL);
+        for (int i = 0; i < $1->child_count; i++) {
+            addChild(decls, $1->children[i]);
+        }
+        for (int i = 0; i < $2->child_count; i++) {
+            addChild(decls, $2->children[i]);
+        }
+        free($1->children); free($1);
+        free($2->children); free($2);
+        addChild($$, decls);
         ast_root = $$;
     }
     ;
 
-declarations:
-    var_decl declarations {
+extern_decl_list:
+    extern_decl_list extern_decl {
+        $$ = $1;
+        addChild($$, $2);
+    }
+    | { $$ = createNode(DECLARATIONS_NODE, NULL); }
+    ;
+
+extern_decl:
+      EXTERN type ID '(' param_list_opt ')' ';' {
+          $$ = createNode(EXTERN_METHOD_NODE, (char*)dtype_to_str($2));
+          addChild($$, createNode(ID_NODE, $3));
+          addChild($$, $5);
+      }
+    | EXTERN VOID ID '(' param_list_opt ')' ';' {
+          $$ = createNode(EXTERN_METHOD_NODE, "void");
+          addChild($$, createNode(ID_NODE, $3));
+          addChild($$, $5);
+      }
+    ;
+
+global_declarations:
+    var_decl global_declarations {
         $$ = $2;
         prependChild($$, $1);
     }
@@ -310,9 +343,17 @@ void yyerror(const char *s) {
 int main(int argc, char** argv) {
   symtab_init();
   char* input_filename = NULL;
-  ++argv, --argc;
-  if (argc > 0) {
-    input_filename = argv[0];
+  bool require_main = true;
+
+  for (int i = 1; i < argc; i++) {
+    if (strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--module") == 0) {
+      require_main = false;
+    } else if (argv[i][0] != '-' && input_filename == NULL) {
+      input_filename = argv[i];
+    }
+  }
+
+  if (input_filename != NULL) {
     yyin = fopen(input_filename, "r");
     if (!yyin) {
       fprintf(stderr, "Error: could not open file %s\n", input_filename);
@@ -327,7 +368,7 @@ int main(int argc, char** argv) {
       printf("=== AST ===\n");
       printAST(ast_root);
       printf("\n=== SEMANTIC ANALYSIS & SYMTAB ===\n");
-      int sem_errors = analyze_semantics(ast_root);
+      int sem_errors = analyze_semantics(ast_root, require_main);
       if (sem_errors == 0 && lexic_error_count == 0) {
           printf("\n=== INTERMEDIATE CODE (TAC) ===\n");
           TacList *tac = codegen_generate(ast_root);

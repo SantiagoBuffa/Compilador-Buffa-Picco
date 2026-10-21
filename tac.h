@@ -28,7 +28,8 @@ typedef enum {
     TAC_RETURN,      // return arg1 (or return if arg1 is NULL)
     TAC_FUNC_BEGIN,  // func begin res
     TAC_FUNC_END,    // func end res
-    TAC_GLOBAL_VAR   // global res
+    TAC_GLOBAL_VAR,  // global res
+    TAC_EXTERN       // extern res
 } TacType;
 
 // Individual TAC instruction node (doubly linked list)

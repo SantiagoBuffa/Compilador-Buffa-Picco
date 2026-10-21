@@ -338,6 +338,9 @@ static void gen_declarations(Node* node, TacList* list) {
                 char* g_name = get_node_tac_name(id_node);
                 tac_append(list, tac_create_instr(TAC_GLOBAL_VAR, g_name, NULL, NULL));
             }
+        } else if (child->type == EXTERN_METHOD_NODE) {
+            char* func_name = child->children[0]->value;
+            tac_append(list, tac_create_instr(TAC_EXTERN, func_name, NULL, NULL));
         } else if (child->type == METHOD_NODE) {
             gen_method(child, list);
         }

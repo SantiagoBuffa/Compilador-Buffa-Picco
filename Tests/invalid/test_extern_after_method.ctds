@@ -1,0 +1,7 @@
+void foo() {
+}
+
+extern int suma(int a, int b);
+
+void main() {
+}

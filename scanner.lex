@@ -32,6 +32,7 @@ id     {alpha}{alpha_num}*
 "return"   { return RETURN; }
 "true"   { return TRUE; }
 "false"   { return FALSE; }
+"extern"  { return EXTERN; }
 
 
     /* Arithmetic operators */
