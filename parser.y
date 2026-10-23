@@ -8,6 +8,7 @@
 #include "semantic.h"
 #include "tac.h"
 #include "codegen.h"
+#include "asm.h"
 
 extern FILE *yyin;
 int yylex(void);
@@ -389,6 +390,40 @@ int main(int argc, char** argv) {
                   tac_print(f_ci, tac);
                   fclose(f_ci);
                   printf("\n[Archivo .ci generado: %s]\n", ci_filename);
+              }
+
+              char s_filename[512];
+              strncpy(s_filename, input_filename, sizeof(s_filename) - 1);
+              s_filename[sizeof(s_filename) - 1] = '\0';
+              char *dot_s = strrchr(s_filename, '.');
+              if (dot_s) {
+                  strcpy(dot_s, ".s");
+              } else {
+                  strncat(s_filename, ".s", sizeof(s_filename) - strlen(s_filename) - 1);
+              }
+              FILE *f_s = fopen(s_filename, "w");
+              if (f_s) {
+                  asm_generate(f_s, tac);
+                  fclose(f_s);
+                  printf("[Archivo .s generado: %s]\n", s_filename);
+              }
+
+              if (require_main) {
+                  char out_filename[512];
+                  strncpy(out_filename, input_filename, sizeof(out_filename) - 1);
+                  out_filename[sizeof(out_filename) - 1] = '\0';
+                  char *dot_out = strrchr(out_filename, '.');
+                  if (dot_out) {
+                      strcpy(dot_out, ".out");
+                  } else {
+                      strncat(out_filename, ".out", sizeof(out_filename) - strlen(out_filename) - 1);
+                  }
+                  char gcc_cmd[2048];
+                  snprintf(gcc_cmd, sizeof(gcc_cmd), "gcc -no-pie %s -o %s 2>/dev/null", s_filename, out_filename);
+                  int ret = system(gcc_cmd);
+                  if (ret == 0) {
+                      printf("[Archivo binario generado: %s]\n", out_filename);
+                  }
               }
           }
           tac_free(tac);

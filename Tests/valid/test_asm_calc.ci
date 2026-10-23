@@ -1,0 +1,36 @@
+func begin sumar
+    recv_param a_1
+    recv_param b_2
+    t0 = a_1 + b_2
+    return t0
+func end sumar
+
+func begin factorial
+    recv_param n_3
+    t1 = 2
+    t2 = n_3 < t1
+    if_false t2 goto L0
+    t3 = 1
+    return t3
+L0:
+    t4 = 1
+    t5 = n_3 - t4
+    param t5
+    t6 = call factorial, 1
+    t7 = n_3 * t6
+    return t7
+func end factorial
+
+func begin main
+    t8 = 20
+    t9 = 22
+    param t8
+    param t9
+    t10 = call sumar, 2
+    s_4 = t10
+    t11 = 5
+    param t11
+    t12 = call factorial, 1
+    f_5 = t12
+func end main
+

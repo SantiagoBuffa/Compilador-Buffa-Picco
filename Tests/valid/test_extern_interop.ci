@@ -1,0 +1,13 @@
+extern c_print
+extern c_multiply
+func begin main
+    t0 = 7
+    t1 = 8
+    param t0
+    param t1
+    t2 = call c_multiply, 2
+    res_1 = t2
+    param res_1
+    call c_print, 1
+func end main
+
