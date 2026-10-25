@@ -15,6 +15,7 @@ typedef struct GlobalSymbol {
 
 static GlobalSymbol *global_symbols = NULL;
 
+// Adds a global symbol to the list if it doesn't already exist
 static void add_global_symbol(const char *name) {
     if (!name) return;
     GlobalSymbol *curr = global_symbols;
@@ -28,6 +29,7 @@ static void add_global_symbol(const char *name) {
     global_symbols = node;
 }
 
+// Checks if a name is in the global symbols list
 static bool is_global(const char *name) {
     if (!name) return false;
     GlobalSymbol *curr = global_symbols;
@@ -38,6 +40,7 @@ static bool is_global(const char *name) {
     return false;
 }
 
+// Frees the global symbols list
 static void free_global_symbols(void) {
     GlobalSymbol *curr = global_symbols;
     while (curr) {
@@ -69,6 +72,7 @@ typedef struct StackVar {
     struct StackVar *next;
 } StackVar;
 
+// Function context to manage local variables and stack frame size
 typedef struct {
     const char *func_name;
     StackVar *vars;
@@ -76,6 +80,7 @@ typedef struct {
     int frame_size;
 } FuncContext;
 
+// Registers a local variable in the function context if it is not already registered
 static void register_local(FuncContext *ctx, const char *name) {
     if (!name || is_number(name) || is_global(name)) return;
     if (strcmp(name, "true") == 0 || strcmp(name, "false") == 0) return;
@@ -94,6 +99,7 @@ static void register_local(FuncContext *ctx, const char *name) {
     ctx->vars = var;
 }
 
+// Retrieves the stack offset for a local variable, registering it if necessary
 static int get_stack_offset(FuncContext *ctx, const char *name) {
     StackVar *curr = ctx->vars;
     while (curr) {
@@ -105,6 +111,7 @@ static int get_stack_offset(FuncContext *ctx, const char *name) {
     return ctx->vars->offset;
 }
 
+// Frees the function context, including all registered local variables
 static void free_func_context(FuncContext *ctx) {
     StackVar *curr = ctx->vars;
     while (curr) {
@@ -182,6 +189,7 @@ void asm_generate(FILE *out, TacList *tac) {
     int call_arg_count = 0;
 
     curr = tac->head;
+    // Iterate through TAC instructions and generate assembly code
     while (curr) {
         switch (curr->type) {
             case TAC_FUNC_BEGIN: {
@@ -194,17 +202,21 @@ void asm_generate(FILE *out, TacList *tac) {
                 // Pre-scan this function to register all locals, parameters, and temporaries
                 TacInstr *scan = curr->next;
                 while (scan && scan->type != TAC_FUNC_END) {
+                    // if the instruction is not a label or a goto, register its operands
                     if (scan->type != TAC_LABEL && scan->type != TAC_GOTO) {
                         if (scan->res && scan->type != TAC_CALL && scan->type != TAC_CALL_VOID) {
                             register_local(&ctx, scan->res);
                         } else if (scan->res && scan->type == TAC_CALL) {
+                            // For TAC_CALL, the result is a temporary variable that will hold the return value
                             register_local(&ctx, scan->res);
                         }
                     }
+                    // Register arg1 and arg2 if they are not null and not a call instruction
                     if (scan->type != TAC_CALL && scan->type != TAC_CALL_VOID) {
                         if (scan->arg1) register_local(&ctx, scan->arg1);
                     }
                     if (scan->arg2) register_local(&ctx, scan->arg2);
+                    // Register parameters for TAC_PARAM and TAC_RECV_PARAM
                     scan = scan->next;
                 }
 
@@ -214,6 +226,7 @@ void asm_generate(FILE *out, TacList *tac) {
                 if (frame_size < 16) frame_size = 16;
                 ctx.frame_size = frame_size;
 
+                // Emit function prologue
                 fprintf(out, "    .globl %s\n", ctx.func_name);
                 fprintf(out, "    .type %s, @function\n", ctx.func_name);
                 fprintf(out, "%s:\n", ctx.func_name);
@@ -222,6 +235,7 @@ void asm_generate(FILE *out, TacList *tac) {
             }
 
             case TAC_RECV_PARAM: {
+                // Store the received parameter into the appropriate stack location
                 if (recv_count < 6) {
                     store_operand(out, arg_regs[recv_count], curr->res, &ctx);
                 } else {
@@ -234,6 +248,7 @@ void asm_generate(FILE *out, TacList *tac) {
             }
 
             case TAC_PARAM: {
+                // Store the parameter argument for the next function call
                 if (call_arg_count < 256) {
                     call_args[call_arg_count++] = curr->arg1;
                 }
@@ -242,6 +257,7 @@ void asm_generate(FILE *out, TacList *tac) {
 
             case TAC_CALL:
             case TAC_CALL_VOID: {
+                // Handle function call with arguments
                 int num_args = call_arg_count;
                 int reg_args = num_args < 6 ? num_args : 6;
                 int stack_args = num_args > 6 ? (num_args - 6) : 0;
@@ -272,6 +288,7 @@ void asm_generate(FILE *out, TacList *tac) {
                     fprintf(out, "    addq $8, %%rsp\n");
                 }
 
+                // If the call has a result, store it in the appropriate location
                 if (curr->type == TAC_CALL) {
                     store_operand(out, "%rax", curr->res, &ctx);
                 }
@@ -282,6 +299,7 @@ void asm_generate(FILE *out, TacList *tac) {
 
             case TAC_RETURN: {
                 if (curr->arg1) {
+                    // Load the return value into %rax
                     load_operand(out, curr->arg1, "%rax", &ctx);
                 } else if (strcmp(ctx.func_name, "main") == 0) {
                     fprintf(out, "    movq $0, %%rax\n");
@@ -292,6 +310,7 @@ void asm_generate(FILE *out, TacList *tac) {
 
             case TAC_FUNC_END: {
                 if (strcmp(ctx.func_name, "main") == 0) {
+                    // Ensure main returns 0 if no return value was specified
                     fprintf(out, "    movq $0, %%rax\n");
                 }
                 fprintf(out, ".L%s_epilogue:\n", ctx.func_name);
@@ -303,12 +322,14 @@ void asm_generate(FILE *out, TacList *tac) {
             }
 
             case TAC_COPY: {
+                // Load the source operand into a register and store it into the destination
                 load_operand(out, curr->arg1, "%r10", &ctx);
                 store_operand(out, "%r10", curr->res, &ctx);
                 break;
             }
 
             case TAC_ADD: {
+                // Load both operands into registers, perform addition, and store the result
                 load_operand(out, curr->arg1, "%r10", &ctx);
                 load_operand(out, curr->arg2, "%r11", &ctx);
                 fprintf(out, "    addq %%r11, %%r10\n");
@@ -317,6 +338,7 @@ void asm_generate(FILE *out, TacList *tac) {
             }
 
             case TAC_SUB: {
+                // Load both operands into registers, perform subtraction, and store the result
                 load_operand(out, curr->arg1, "%r10", &ctx);
                 load_operand(out, curr->arg2, "%r11", &ctx);
                 fprintf(out, "    subq %%r11, %%r10\n");
@@ -325,6 +347,7 @@ void asm_generate(FILE *out, TacList *tac) {
             }
 
             case TAC_MUL: {
+                // Load both operands into registers, perform multiplication, and store the result
                 load_operand(out, curr->arg1, "%r10", &ctx);
                 load_operand(out, curr->arg2, "%r11", &ctx);
                 fprintf(out, "    imulq %%r11, %%r10\n");
@@ -333,6 +356,7 @@ void asm_generate(FILE *out, TacList *tac) {
             }
 
             case TAC_DIV: {
+                // Load the dividend into %rax, extend it to %rdx, load the divisor into %r10, perform division, and store the quotient in the result
                 load_operand(out, curr->arg1, "%rax", &ctx);
                 fprintf(out, "    cqto\n");
                 load_operand(out, curr->arg2, "%r10", &ctx);
@@ -342,6 +366,7 @@ void asm_generate(FILE *out, TacList *tac) {
             }
 
             case TAC_MOD: {
+                // Load both operands into registers, perform division, and store the remainder in the result
                 load_operand(out, curr->arg1, "%rax", &ctx);
                 fprintf(out, "    cqto\n");
                 load_operand(out, curr->arg2, "%r10", &ctx);
@@ -351,6 +376,7 @@ void asm_generate(FILE *out, TacList *tac) {
             }
 
             case TAC_NEG: {
+                // Load the operand into a register, negate it, and store the result
                 load_operand(out, curr->arg1, "%r10", &ctx);
                 fprintf(out, "    negq %%r10\n");
                 store_operand(out, "%r10", curr->res, &ctx);
@@ -358,6 +384,7 @@ void asm_generate(FILE *out, TacList *tac) {
             }
 
             case TAC_NOT: {
+                // Load the operand into a register, compare it to zero, set the result to 1 if it is zero (logical NOT), and store the result
                 load_operand(out, curr->arg1, "%r10", &ctx);
                 fprintf(out, "    cmpq $0, %%r10\n");
                 fprintf(out, "    sete %%al\n");
@@ -367,6 +394,7 @@ void asm_generate(FILE *out, TacList *tac) {
             }
 
             case TAC_EQ: {
+                // Load both operands into registers, compare them, set the result to 1 if they are equal, and store the result
                 load_operand(out, curr->arg1, "%r10", &ctx);
                 load_operand(out, curr->arg2, "%r11", &ctx);
                 fprintf(out, "    cmpq %%r11, %%r10\n");
@@ -377,6 +405,7 @@ void asm_generate(FILE *out, TacList *tac) {
             }
 
             case TAC_LT: {
+                // same but for less than
                 load_operand(out, curr->arg1, "%r10", &ctx);
                 load_operand(out, curr->arg2, "%r11", &ctx);
                 fprintf(out, "    cmpq %%r11, %%r10\n");
@@ -387,6 +416,7 @@ void asm_generate(FILE *out, TacList *tac) {
             }
 
             case TAC_GT: {
+                // same but for greater than
                 load_operand(out, curr->arg1, "%r10", &ctx);
                 load_operand(out, curr->arg2, "%r11", &ctx);
                 fprintf(out, "    cmpq %%r11, %%r10\n");
@@ -397,16 +427,19 @@ void asm_generate(FILE *out, TacList *tac) {
             }
 
             case TAC_LABEL: {
+                // Emit a label
                 fprintf(out, ".L%s:\n", curr->res);
                 break;
             }
 
             case TAC_GOTO: {
+                // Emit an unconditional jump to the label
                 fprintf(out, "    jmp .L%s\n", curr->res);
                 break;
             }
 
             case TAC_IF_TRUE: {
+                // Load the condition operand into a register, compare it to zero, and jump to the label if it is non-zero (true)
                 load_operand(out, curr->arg1, "%r10", &ctx);
                 fprintf(out, "    cmpq $0, %%r10\n");
                 fprintf(out, "    jne .L%s\n", curr->res);
@@ -414,6 +447,7 @@ void asm_generate(FILE *out, TacList *tac) {
             }
 
             case TAC_IF_FALSE: {
+                // same but jump if zero (false)
                 load_operand(out, curr->arg1, "%r10", &ctx);
                 fprintf(out, "    cmpq $0, %%r10\n");
                 fprintf(out, "    je .L%s\n", curr->res);
@@ -432,6 +466,7 @@ void asm_generate(FILE *out, TacList *tac) {
     }
 
     // Pass 3: Emit global variables in .bss section
+
     bool has_globals = false;
     curr = tac->head;
     while (curr) {
