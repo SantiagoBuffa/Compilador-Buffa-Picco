@@ -355,6 +355,7 @@ Además, se utiliza un arreglo de registros para representar los seis primeros r
 
 
 - problemas conocidos:
+
 - Con respecto a la introducción de elementos EXTERN:
 
 Decidimos hacer que sintacticamente las declaraciones externas estén al principio de los archivos de nuestro lenguaje,
@@ -362,4 +363,5 @@ seguido por las declaraciones de variables globales y el resto del programa.
 Modificamos lo necesario para hacerlo encajar
 (por ejemplo agregamos el símbolo "extern" al léxico, modificamos la regla principal de la sintaxis para requerir 
 que las declaraciones externas vayan primero, agregamos las instrucciones a la creación del arbol AST, etc.)
-El linkeamiento con los archivos externos se hace a través de (""""COMPLETARRRRR""")
+Los archivos externos se compilan con -c o --module, el linkeamiento entre un archivo .cdts y sus referencias externas se hace
+con GCC.
