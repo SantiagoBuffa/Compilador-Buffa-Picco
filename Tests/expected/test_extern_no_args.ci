@@ -1,0 +1,8 @@
+extern get_magic_number
+extern tick
+func begin main
+    call tick, 0
+    t0 = call get_magic_number, 0
+    m_1 = t0
+func end main
+

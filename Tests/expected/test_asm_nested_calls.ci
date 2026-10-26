@@ -1,0 +1,29 @@
+func begin duplicar
+    recv_param n_1
+    t0 = 2
+    t1 = n_1 * t0
+    return t1
+func end duplicar
+
+func begin sumar
+    recv_param a_2
+    recv_param b_3
+    t2 = a_2 + b_3
+    return t2
+func end sumar
+
+func begin main
+    t3 = 3
+    param t3
+    t4 = call duplicar, 1
+    t5 = 4
+    t6 = 5
+    param t5
+    param t6
+    t7 = call sumar, 2
+    param t4
+    param t7
+    t8 = call sumar, 2
+    res_4 = t8
+func end main
+

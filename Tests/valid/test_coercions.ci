@@ -1,7 +1,0 @@
-func begin main
-    t0 = 1
-    x_1 = t0
-    t1 = 1.0
-    y_2 = t1
-func end main
-
