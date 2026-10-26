@@ -302,3 +302,64 @@ y todavía hay expresiones para evaluar
 
 
 - problemas conocidos:
+
+
+4) ETAPA: generación de código ASSEMBLY x86-64
+
+- división de trabajo:
+50/50, tests by Valentino Picco
+
+- diseño:
+
+. El algoritmo principal recorre la lista de instrucciónes de TAC elaborada en la pasada etapa, y para cada tipo de instrucción de 3 direcciones
+genera el equivalente en assembly x86-64.
+
+Al comenzar cada ejecución, realiza un recorrido previo de sus instrucciones para registrar las variables locales, los parámetros y los temporales, 
+asignándoles desplazamientos en la pila. Con esta información calcula el tamaño del marco de pila, alineado a 16 bytes, y genera el prólogo de la función.
+
+Las variables globales y las declaraciones externas se procesan en pasadas específicas, separando su gestión de la generación del cuerpo de las funciones. 
+Finalmente, genera los epílogos de las funciones y libera las estructuras auxiliares utilizadas durante el proceso.
+
+En total el algoritmo realiza 3 pasadas sobre la lista de instrucciones TAC
+
+. Decidimos almacenar las variables locales y los temporales en posiciones relativas a %rbp, mientras que las variables globales se acceden
+mediante direccionamiento relativo a %rip.
+
+. Decidimos centralizar la carga y el almacenamiento de operandos para reutilizar la lógica de acceso a variables, literales y temporales en las distintas operaciones.
+
+. Decidimos utilizar registros de propósito general para realizar las operaciones, evitando generar accesos a memoria para cada paso intermedio de los cálculos.
+
+. Con respecto a los registros:
+
+* %rbp como referencia para acceder a las variables locales y los parámetros recibidos.
+* %rsp para gestionar el espacio disponible en la pila y los argumentos adicionales de las llamadas.
+* %r10 y %r11 como registros temporales para operaciones aritméticas, lógicas y movimientos de datos.
+* %rax para el valor de retorno y para las operaciones de división.
+* Desplazamientos de ocho bytes para las variables almacenadas en la pila.
+* Etiquetas locales con el prefijo .L para representar destinos de saltos y epílogos.
+
+- detalles de implementación:
+
+utilizamos estas estructuras de datos:
+
+* GlobalSymbol: representa un símbolo global mediante su nombre y un puntero al siguiente elemento.
+Los símbolos se almacenan en una lista enlazada que permite identificar las variables globales durante la generación.
+
+* StackVar: representa una variable local, un parámetro o un temporal. 
+Almacena su nombre, el desplazamiento asignado respecto de %rbp y un puntero al siguiente elemento de la lista.
+
+* FuncContext: mantiene el contexto de la función que se está generando. Contiene su nombre, la lista de variables registradas, 
+la cantidad de elementos locales y el tamaño del marco de pila.
+
+Además, se utiliza un arreglo de registros para representar los seis primeros registros de argumentos de la convención System V AMD64: %rdi, %rsi, %rdx, %rcx, %r8 y %r9.
+
+
+- problemas conocidos:
+- Con respecto a la introducción de elementos EXTERN:
+
+Decidimos hacer que sintacticamente las declaraciones externas estén al principio de los archivos de nuestro lenguaje,
+seguido por las declaraciones de variables globales y el resto del programa.
+Modificamos lo necesario para hacerlo encajar
+(por ejemplo agregamos el símbolo "extern" al léxico, modificamos la regla principal de la sintaxis para requerir 
+que las declaraciones externas vayan primero, agregamos las instrucciones a la creación del arbol AST, etc.)
+El linkeamiento con los archivos externos se hace a través de (""""COMPLETARRRRR""")
