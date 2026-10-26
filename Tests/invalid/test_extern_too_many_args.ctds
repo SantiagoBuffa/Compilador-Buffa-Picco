@@ -1,0 +1,5 @@
+extern void ping(int a);
+
+void main() {
+    ping(1, 2);
+}

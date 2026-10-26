@@ -1,0 +1,8 @@
+extern int get_magic_number();
+extern void tick();
+
+void main() {
+    int m;
+    tick();
+    m = get_magic_number();
+}

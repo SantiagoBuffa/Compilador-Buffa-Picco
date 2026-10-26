@@ -1,0 +1,19 @@
+# Build artifacts and directories
+build/
+*.o
+compilador_test
+lexer
+
+# Test execution outputs
+*.out
+Tests/valid/*.ci
+Tests/valid/*.s
+Tests/valid/*.out
+Tests/invalid/*.ci
+Tests/invalid/*.s
+Tests/invalid/*.out
+
+# IDE and OS
+.DS_Store
+.vscode/
+.idea/

@@ -1,0 +1,12 @@
+int duplicar(int n) {
+    return n * 2;
+}
+
+int sumar(int a, int b) {
+    return a + b;
+}
+
+void main() {
+    int res;
+    res = sumar(duplicar(3), sumar(4, 5));
+}

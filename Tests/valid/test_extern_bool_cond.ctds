@@ -1,0 +1,16 @@
+extern boolean is_positive(int n);
+
+void main() {
+    int x;
+    int count;
+    x = 10;
+    count = 0;
+    if (is_positive(x)) {
+        count = count + 1;
+    } else {
+        count = count - 1;
+    }
+    while (is_positive(x)) {
+        x = x - 5;
+    }
+}

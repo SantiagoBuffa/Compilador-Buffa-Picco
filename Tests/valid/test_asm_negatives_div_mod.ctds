@@ -1,0 +1,21 @@
+void main() {
+    int a;
+    int b;
+    int q1;
+    int q2;
+    int m1;
+    int m2;
+    boolean c1;
+    boolean c2;
+
+    a = -100;
+    b = 3;
+    q1 = a / b;
+    m1 = a % b;
+
+    q2 = 100 / -3;
+    m2 = 100 % -3;
+
+    c1 = a < -50;
+    c2 = -10 > -5;
+}
