@@ -1,0 +1,60 @@
+// Test comprehensivo de optimizaciones en el AST:
+// 1. Plegado y propagación encadenada
+// 2. Control de flujo if-else con unión de entornos (meet)
+// 3. Seguridad en bucles while (no propagar variables modificadas)
+// 4. Invocación de métodos e invalidación de globales
+
+int global_counter;
+
+void incrementGlobal() {
+    global_counter = global_counter + 1;
+}
+
+int testPropagation() {
+    int a, b, c, d;
+    a = 10;
+    b = a + 5;      // Debe propagar a=10 y plegar a 15
+    c = b * 2;      // Debe propagar b=15 y plegar a 30
+    d = c - a + 3;  // 30 - 10 + 3 = 23
+    return d;       // Debe retornar 23 directamente
+}
+
+int testBranches(boolean cond) {
+    int x, y;
+    x = 100;
+    if (cond) {
+        y = 50;
+        x = 200;
+    } else {
+        y = 50;
+        x = 300;
+    }
+    // y debe ser 50 (mismo valor en ambas ramas)
+    // x debe ser desconocido (valores distintos: 200 vs 300)
+    return y + x;
+}
+
+int testLoopSafety(int limit) {
+    int i, sum;
+    i = 0;
+    sum = 0;
+    while (i < limit) {
+        sum = sum + i;
+        i = i + 1;
+    }
+    // i y sum no deben ser tratados como 0 tras el while
+    return sum + i;
+}
+
+void main() {
+    int r1, r2, r3;
+    global_counter = 0;
+    
+    r1 = testPropagation();
+    r2 = testBranches(true);
+    r3 = testLoopSafety(5);
+    
+    incrementGlobal();
+    // global_counter fue modificado por incrementGlobal, no debe ser 0
+    return;
+}

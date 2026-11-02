@@ -9,6 +9,7 @@
 #include "tac.h"
 #include "codegen.h"
 #include "asm.h"
+#include "ast_optimizer.h"
 
 extern FILE *yyin;
 int yylex(void);
@@ -371,6 +372,7 @@ int main(int argc, char** argv) {
       printf("\n=== SEMANTIC ANALYSIS & SYMTAB ===\n");
       int sem_errors = analyze_semantics(ast_root, require_main);
       if (sem_errors == 0 && lexic_error_count == 0) {
+          ast_root = optimize_ast(ast_root);
           printf("\n=== INTERMEDIATE CODE (TAC) ===\n");
           TacList *tac = codegen_generate(ast_root);
           tac_print(stdout, tac);

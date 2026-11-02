@@ -4,35 +4,40 @@ func begin testParallelBranches
     if_false flag_1 goto L0
     t0 = 10
     a_2 = t0
-    global_val = a_2
+    t1 = 10
+    global_val = t1
     goto L1
 L0:
-    t1 = 20
-    a_3 = t1
-    global_val = a_3
+    t2 = 20
+    a_3 = t2
+    t3 = 20
+    global_val = t3
 L1:
 func end testParallelBranches
 
 func begin testMultiLevelNesting
-    t2 = 1
-    x_4 = t2
-    t3 = 2
-    x_5 = t3
-    t4 = 3
-    x_6 = t4
-    global_val = x_6
-    global_val = x_5
-    global_val = x_4
+    t4 = 1
+    x_4 = t4
+    t5 = 2
+    x_5 = t5
+    t6 = 3
+    x_6 = t6
+    t7 = 3
+    global_val = t7
+    t8 = 2
+    global_val = t8
+    t9 = 1
+    global_val = t9
 func end testMultiLevelNesting
 
 func begin main
-    t5 = 0
-    global_val = t5
-    t6 = 1
-    param t6
+    t10 = 0
+    global_val = t10
+    t11 = 1
+    param t11
     call testParallelBranches, 1
-    t7 = 0
-    param t7
+    t12 = 0
+    param t12
     call testParallelBranches, 1
     call testMultiLevelNesting, 0
     return

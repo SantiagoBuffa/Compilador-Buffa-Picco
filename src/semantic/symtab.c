@@ -68,6 +68,7 @@ Symbol* symtab_insert(char* name, DataType type, SymbolKind kind) {
     new_symbol->type = type;
     new_symbol->kind = kind;
     new_symbol->is_extern = false;
+    new_symbol->is_global = (top_scope->prev == NULL);
     new_symbol->params = NULL;
     new_symbol->next = NULL;
 

@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=gnu11 -Wno-unused-function \
-         -Isrc/frontend -Isrc/semantic -Isrc/ir -Isrc/backend -Ibuild
+         -Isrc/frontend -Isrc/semantic -Isrc/ir -Isrc/backend -Isrc/optimizer -Ibuild
 LIBS = -lm
 
 BUILD_DIR = build
@@ -12,10 +12,11 @@ OBJS = $(BUILD_DIR)/estructuras.o \
        $(BUILD_DIR)/tac.o \
        $(BUILD_DIR)/codegen.o \
        $(BUILD_DIR)/asm.o \
+       $(BUILD_DIR)/ast_optimizer.o \
        $(BUILD_DIR)/parser.tab.o \
        $(BUILD_DIR)/lex.yy.o
 
-VPATH = src/frontend:src/semantic:src/ir:src/backend:$(BUILD_DIR)
+VPATH = src/frontend:src/semantic:src/ir:src/backend:src/optimizer:$(BUILD_DIR)
 
 all: $(TARGET)
 

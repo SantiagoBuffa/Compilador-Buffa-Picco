@@ -5,9 +5,11 @@ func begin main
     x_1 = t0
     t1 = 20
     y_2 = t1
-    param x_1
-    param y_2
-    t2 = call suma, 2
-    global_res = t2
+    t2 = 10
+    t3 = 20
+    param t2
+    param t3
+    t4 = call suma, 2
+    global_res = t4
 func end main
 

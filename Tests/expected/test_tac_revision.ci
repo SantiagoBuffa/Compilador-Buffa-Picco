@@ -75,57 +75,46 @@ L5:
     return acc_9
     goto L9
 L8:
-    t25 = 1
-    t26 = - t25
-    return t26
+    t25 = -1
+    return t25
 L9:
 func end testControl
 
 func begin sideEffect
-    t27 = 1
-    t28 = x + t27
-    x = t28
-    t29 = 1
-    return t29
+    t26 = 1
+    t27 = x + t26
+    x = t27
+    t28 = 1
+    return t28
 func end sideEffect
 
 func begin main
-    t30 = 100
-    x = t30
+    t29 = 100
+    x = t29
     call emptyCall, 0
-    t31 = 5
-    param t31
-    t32 = call identity, 1
-    t33 = 10
-    t34 = 20
+    t30 = 5
+    param t30
+    t31 = call identity, 1
+    t32 = 10
+    t33 = 20
+    param t32
     param t33
+    t34 = call sumar, 2
+    param t31
     param t34
     t35 = call sumar, 2
-    param t32
-    param t35
-    t36 = call sumar, 2
-    res_10 = t36
+    res_10 = t35
     param res_10
-    t37 = call testShadowing, 1
-    res_10 = t37
-    t38 = 3
-    param t38
-    t39 = call testControl, 1
-    res_10 = t39
-    t41 = 0
-    t40 = t41
-    if_false t40 goto L10
-    t42 = call sideEffect, 0
-    t40 = t42
-L10:
-    b1_11 = t40
-    t44 = 1
-    t43 = t44
-    if t43 goto L11
-    t45 = call sideEffect, 0
-    t43 = t45
-L11:
-    b2_12 = t43
+    t36 = call testShadowing, 1
+    res_10 = t36
+    t37 = 3
+    param t37
+    t38 = call testControl, 1
+    res_10 = t38
+    t39 = 0
+    b1_11 = t39
+    t40 = 1
+    b2_12 = t40
     return
 func end main
 
