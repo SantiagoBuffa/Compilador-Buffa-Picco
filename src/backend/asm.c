@@ -230,7 +230,9 @@ void asm_generate(FILE *out, TacList *tac) {
                 fprintf(out, "    .globl %s\n", ctx.func_name);
                 fprintf(out, "    .type %s, @function\n", ctx.func_name);
                 fprintf(out, "%s:\n", ctx.func_name);
-                fprintf(out, "    enter $%d, $0\n", ctx.frame_size);
+                fprintf(out, "    pushq %%rbp\n");
+                fprintf(out, "    movq %%rsp, %%rbp\n");
+                fprintf(out, "    subq $%d, %%rsp\n", ctx.frame_size);
                 break;
             }
 
