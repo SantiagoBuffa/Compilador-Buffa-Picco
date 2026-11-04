@@ -16,25 +16,9 @@ func begin math
     b1_4 = t2
     t3 = 0
     b2_5 = t3
-    t4 = 0
-    if_false t4 goto L0
-    t5 = -9
-    innerVar_6 = t5
-L2:
-    t6 = 0
-    t7 = innerVar_6 > t6
-    if_false t7 goto L3
-    t8 = 1
-    t9 = innerVar_6 - t8
-    innerVar_6 = t9
-    goto L2
-L3:
-    goto L1
-L0:
     call emptyMethod, 0
-L1:
-    t10 = -9
-    return t10
+    t4 = -9
+    return t4
 func end math
 
 func begin main
