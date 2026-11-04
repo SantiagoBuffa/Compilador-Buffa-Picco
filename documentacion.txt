@@ -338,6 +338,7 @@ mediante direccionamiento relativo a %rip.
 * Desplazamientos de ocho bytes para las variables almacenadas en la pila.
 * Etiquetas locales con el prefijo .L para representar destinos de saltos y epílogos.
 
+
 - detalles de implementación:
 
 utilizamos estas estructuras de datos:

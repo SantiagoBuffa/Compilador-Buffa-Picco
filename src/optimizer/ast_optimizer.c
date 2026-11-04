@@ -34,6 +34,7 @@ typedef struct ConstEnv {
     EnvEntry* head;
 } ConstEnv;
 
+// Creates a new constant environment
 static ConstEnv* env_create(void) {
     ConstEnv* env = (ConstEnv*)malloc(sizeof(ConstEnv));
     if (!env) {
@@ -44,6 +45,7 @@ static ConstEnv* env_create(void) {
     return env;
 }
 
+// frees up the constant environment and its entries
 static void env_free(ConstEnv* env) {
     if (!env) return;
     EnvEntry* curr = env->head;
@@ -56,6 +58,7 @@ static void env_free(ConstEnv* env) {
     free(env);
 }
 
+// Clones the constant environment, creating a deep copy
 static ConstEnv* env_clone(ConstEnv* src) {
     ConstEnv* copy = env_create();
     if (!src) return copy;
@@ -75,6 +78,7 @@ static ConstEnv* env_clone(ConstEnv* src) {
     return copy;
 }
 
+// Retrieves the constant value of a variable from the environment, or returns an unknown value if not found
 static ConstVal env_get(ConstEnv* env, const char* name) {
     ConstVal def;
     def.is_const = false;
@@ -91,6 +95,7 @@ static ConstVal env_get(ConstEnv* env, const char* name) {
     return def;
 }
 
+// Sets a variable in the environment to a known constant value
 static void env_set_const(ConstEnv* env, Symbol* sym, const char* name, ConstVal cval) {
     if (!env || !name) return;
 
@@ -113,6 +118,7 @@ static void env_set_const(ConstEnv* env, Symbol* sym, const char* name, ConstVal
     env->head = new_entry;
 }
 
+// Sets a variable in the environment to an unknown value (not a constant)
 static void env_set_unknown(ConstEnv* env, const char* name) {
     if (!env || !name) return;
 
@@ -134,6 +140,7 @@ static void env_set_unknown(ConstEnv* env, const char* name) {
     env->head = new_entry;
 }
 
+// Invalidates all global variables in the environment, marking them as unknown
 static void env_invalidate_globals(ConstEnv* env) {
     if (!env) return;
     EnvEntry* curr = env->head;
@@ -145,6 +152,7 @@ static void env_invalidate_globals(ConstEnv* env) {
     }
 }
 
+// Compares two constant values for equality, considering their types and values
 static bool const_val_equal(ConstVal a, ConstVal b) {
     if (!a.is_const || !b.is_const) return false;
     if (a.type != b.type) return false;
@@ -296,6 +304,7 @@ static bool get_const_val(Node* node, ConstVal* out) {
     return true;
 }
 
+// Retrieves the variable name from an ID_NODE, preferring the TAC name if available
 static const char* get_node_var_name(Node* id_node) {
     if (!id_node) return NULL;
     if (id_node->symbol && id_node->symbol->tac_name) {
@@ -310,9 +319,11 @@ static void optimize_stmt(Node* node, ConstEnv* env, bool* changed);
 static void optimize_block(Node* node, ConstEnv* env, bool* changed);
 
 // Recursively walks and folds an expression tree
+// For now: constant folding of arithmetic and boolean expressions, and variable replacement with known constants
 static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
     if (!node) return;
 
+    // constant propagation: replace ID_NODE with known constant value if available
     if (node->type == ID_NODE) {
         const char* name = get_node_var_name(node);
         ConstVal cval = env_get(env, name);
@@ -329,6 +340,8 @@ static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
         return;
     }
 
+    // if the node is a call node, optimize its parameters (minimize their expressions) and invalidate globals
+    // in case of side effects.
     if (node->type == CALL_NODE) {
         if (node->child_count > 0 && node->children[0]->type == ARG_LIST_NODE) {
             Node* arg_list = node->children[0];
@@ -344,7 +357,7 @@ static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
     if (node->type == OPERATION_NODE) {
         char* op = node->value;
 
-        // Unary operators
+        // Minor optimization: if the operation is unary, fold its single child first
         if (strcmp(op, "- (unary)") == 0) {
             fold_expr(node->children[0], env, changed);
             ConstVal arg;
@@ -360,6 +373,7 @@ static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
             return;
         }
 
+        // if !, minimize the child first, then check if it's a boolean constant
         if (strcmp(op, "!") == 0) {
             fold_expr(node->children[0], env, changed);
             ConstVal arg;
@@ -414,7 +428,7 @@ static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
             return;
         }
 
-        // Binary arithmetic and relational operators
+        // optimization for arithmetic and relational operators: fold both children first
         fold_expr(node->children[0], env, changed);
         fold_expr(node->children[1], env, changed);
 
@@ -427,6 +441,7 @@ static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
         if (strcmp(op, "+") == 0 || strcmp(op, "-") == 0 ||
             strcmp(op, "*") == 0 || strcmp(op, "/") == 0 || strcmp(op, "%") == 0) {
 
+                // If both operands are integers, perform integer arithmetic
             if (l.type == TYPE_INT && r.type == TYPE_INT) {
                 if (strcmp(op, "+") == 0) {
                     replace_with_int_literal(node, l.val.ival + r.val.ival);
@@ -448,6 +463,7 @@ static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
                         *changed = true;
                     }
                 }
+                // If either operand is a float, perform floating-point arithmetic
             } else if (l.type == TYPE_FLOAT || r.type == TYPE_FLOAT) {
                 double lf = (l.type == TYPE_FLOAT) ? l.val.fval : (double)l.val.ival;
                 double rf = (r.type == TYPE_FLOAT) ? r.val.fval : (double)r.val.ival;
@@ -527,10 +543,12 @@ static void collect_assigned_vars(Node* node, ConstEnv* env) {
 }
 
 // Optimizes a single statement
+// its objective is to optimize the statement and update the constant environment accordingly
 static void optimize_stmt(Node* node, ConstEnv* env, bool* changed) {
     if (!node) return;
 
     switch (node->type) {
+        // Handle assignment statements: fold the expression, and if it's a constant, update the environment
         case ASSIGNMENT_NODE: {
             Node* id_node = node->children[0];
             Node* expr_node = node->children[1];
@@ -559,6 +577,7 @@ static void optimize_stmt(Node* node, ConstEnv* env, bool* changed) {
             break;
         }
 
+        // Handle function calls: fold arguments and invalidate globals
         case CALL_NODE: {
             if (node->child_count > 0 && node->children[0]->type == ARG_LIST_NODE) {
                 Node* arg_list = node->children[0];
@@ -570,6 +589,8 @@ static void optimize_stmt(Node* node, ConstEnv* env, bool* changed) {
             break;
         }
 
+        // if a return has an expression, fold it
+        // no need to update the enviroment
         case RETURN_NODE: {
             if (node->child_count > 0 && node->children[0]) {
                 fold_expr(node->children[0], env, changed);
@@ -582,14 +603,18 @@ static void optimize_stmt(Node* node, ConstEnv* env, bool* changed) {
             Node* cond_node = node->children[0];
             Node* then_node = node->children[1];
 
+            // this folds the condition expression, for ex 5>3 turns into true
             fold_expr(cond_node, env, changed);
 
             ConstVal cond_val;
+            // if condition is a compile-time constant boolean, we can optimize the branches
             if (get_const_val(cond_node, &cond_val) && cond_val.type == TYPE_BOOLEAN) {
-                if (cond_val.val.bval) {
-                    // Condition is always TRUE: then branch executes
+                // condition is true
+                if (cond_val.val.bval) { 
+                    
                     optimize_block(then_node, env, changed);
                     if (has_else) {
+                        // optimize the else branch in a cloned environment, since it won't be executed
                         ConstEnv* dummy = env_clone(env);
                         optimize_block(node->children[2], dummy, changed);
                         env_free(dummy);
@@ -608,6 +633,7 @@ static void optimize_stmt(Node* node, ConstEnv* env, bool* changed) {
                 ConstEnv* env_then = env_clone(env);
                 optimize_block(then_node, env_then, changed);
 
+                // Merge the environments from the then and else branches
                 if (has_else) {
                     ConstEnv* env_else = env_clone(env);
                     optimize_block(node->children[2], env_else, changed);
@@ -663,7 +689,6 @@ static void optimize_stmt(Node* node, ConstEnv* env, bool* changed) {
 // Optimizes a block or list of statements
 static void optimize_block(Node* node, ConstEnv* env, bool* changed) {
     if (!node) return;
-
     if (node->type == BLOCK_NODE) {
         if (node->child_count > 1 && node->children[1]->type == STATEMENT_LIST_NODE) {
             optimize_stmt(node->children[1], env, changed);
@@ -681,7 +706,7 @@ static void optimize_block(Node* node, ConstEnv* env, bool* changed) {
     }
 }
 
-// Optimizes a method declaration
+// Optimizes a method declaration (uses a fixed-point iteration to handle loops and conditionals)
 static void optimize_method(Node* method_node) {
     if (!method_node || method_node->type != METHOD_NODE) return;
 
@@ -710,6 +735,7 @@ Node* optimize_ast(Node* root) {
     if (decls && decls->type == DECLARATIONS_NODE) {
         for (int i = 0; i < decls->child_count; i++) {
             if (decls->children[i]->type == METHOD_NODE) {
+                // Optimize each method declaration
                 optimize_method(decls->children[i]);
             }
         }
