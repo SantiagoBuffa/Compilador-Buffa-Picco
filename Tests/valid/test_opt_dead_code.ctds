@@ -1,0 +1,57 @@
+// Test cases for dead code elimination (DCE)
+
+int testDeadAfterReturn(int x) {
+    int a;
+    a = x + 1;
+    return a;
+    a = 999;     // Unreachable code after return
+    return 888;  // Unreachable code after return
+}
+
+int testDeadAfterIfElseReturn(boolean cond) {
+    if (cond) {
+        return 1;
+    } else {
+        return 2;
+    }
+    return 3;    // Unreachable code after guaranteed-exit if-else
+}
+
+int testDeadIfTrue() {
+    int res;
+    res = 0;
+    if (true) {
+        res = 42;
+    } else {
+        res = 999; // Dead else branch
+    }
+    return res;
+}
+
+int testDeadIfFalseNoElse() {
+    int res;
+    res = 10;
+    if (false) {
+        res = 999; // Dead statement
+    }
+    return res; // Must be 10
+}
+
+int testDeadWhile() {
+    int count;
+    count = 5;
+    while (false) {
+        count = count + 100; // Dead loop
+    }
+    return count; // Must be 5
+}
+
+void main() {
+    int r1, r2, r3, r4, r5;
+    r1 = testDeadAfterReturn(10);
+    r2 = testDeadAfterIfElseReturn(true);
+    r3 = testDeadIfTrue();
+    r4 = testDeadIfFalseNoElse();
+    r5 = testDeadWhile();
+    return;
+}

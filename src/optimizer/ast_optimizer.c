@@ -353,6 +353,8 @@ static const char* get_node_var_name(Node* id_node) {
 static void fold_expr(Node* node, ConstEnv* env, bool* changed);
 static void optimize_stmt(Node* node, ConstEnv* env, bool* changed);
 static void optimize_block(Node* node, ConstEnv* env, bool* changed);
+static void optimize_statement_list(Node* stmt_list, ConstEnv* env, bool* changed);
+static bool stmt_guarantees_exit(Node* stmt);
 
 // Recursively walks and folds an expression tree
 // For now: constant folding of arithmetic and boolean expressions, and variable replacement with known constants
@@ -769,9 +771,7 @@ static void optimize_stmt(Node* node, ConstEnv* env, bool* changed) {
         }
 
         case STATEMENT_LIST_NODE: {
-            for (int i = 0; i < node->child_count; i++) {
-                optimize_stmt(node->children[i], env, changed);
-            }
+            optimize_statement_list(node, env, changed);
             break;
         }
 
@@ -780,21 +780,145 @@ static void optimize_stmt(Node* node, ConstEnv* env, bool* changed) {
     }
 }
 
+// Checks if a statement guarantees termination/exit (return or if-else where all branches return)
+static bool stmt_guarantees_exit(Node* stmt) {
+    if (!stmt) return false;
+
+    if (stmt->type == RETURN_NODE) {
+        return true;
+    }
+
+    if (stmt->type == BLOCK_NODE) {
+        if (stmt->child_count > 1 && stmt->children[1]->type == STATEMENT_LIST_NODE) {
+            return stmt_guarantees_exit(stmt->children[1]);
+        }
+        return false;
+    }
+
+    if (stmt->type == STATEMENT_LIST_NODE) {
+        for (int i = 0; i < stmt->child_count; i++) {
+            if (stmt_guarantees_exit(stmt->children[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    if (stmt->type == IF_NODE) {
+        // Both branches must exist and exit
+        if (stmt->child_count > 2) {
+            bool if_exits = stmt_guarantees_exit(stmt->children[1]);
+            bool else_exits = stmt_guarantees_exit(stmt->children[2]);
+            return if_exits && else_exits;
+        }
+        return false;
+    }
+
+    return false;
+}
+
+// Optimizes a statement list with dead code elimination (unreachable code after return, dead branches, dead loops)
+static void optimize_statement_list(Node* stmt_list, ConstEnv* env, bool* changed) {
+    if (!stmt_list || stmt_list->type != STATEMENT_LIST_NODE) return;
+
+    for (int i = 0; i < stmt_list->child_count; i++) {
+        Node* stmt = stmt_list->children[i];
+
+        // 1. Optimize the current statement (expressions, inner blocks, assignments, etc.)
+        optimize_stmt(stmt, env, changed);
+
+        // 2. Dead loop elimination: while (false)
+        if (stmt->type == WHILE_NODE) {
+            ConstVal cond_val;
+            if (get_const_val(stmt->children[0], &cond_val) &&
+                cond_val.type == TYPE_BOOLEAN && !cond_val.val.bval) {
+                // Loop condition is false: remove the entire while statement
+                freeAST(stmt);
+                for (int k = i; k < stmt_list->child_count - 1; k++) {
+                    stmt_list->children[k] = stmt_list->children[k + 1];
+                }
+                stmt_list->child_count--;
+                i--;
+                *changed = true;
+                continue;
+            }
+        }
+
+        // 3. Dead conditional elimination: if (true) / if (false)
+        if (stmt->type == IF_NODE) {
+            ConstVal cond_val;
+            if (get_const_val(stmt->children[0], &cond_val) && cond_val.type == TYPE_BOOLEAN) {
+                bool has_else = (stmt->child_count > 2);
+                if (cond_val.val.bval) {
+                    // if (true): keep then branch, prune else branch if it exists
+                    Node* then_block = stmt->children[1];
+                    freeAST(stmt->children[0]);
+                    if (has_else) freeAST(stmt->children[2]);
+                    if (stmt->value) free(stmt->value);
+                    free(stmt->children);
+                    free(stmt);
+
+                    stmt_list->children[i] = then_block;
+                    *changed = true;
+                    // Optimize the newly adopted then_block with current environment
+                    optimize_stmt(stmt_list->children[i], env, changed);
+                } else {
+                    // if (false):
+                    if (has_else) {
+                        // Keep else branch, prune then branch
+                        Node* else_block = stmt->children[2];
+                        freeAST(stmt->children[0]);
+                        freeAST(stmt->children[1]);
+                        if (stmt->value) free(stmt->value);
+                        free(stmt->children);
+                        free(stmt);
+
+                        stmt_list->children[i] = else_block;
+                        *changed = true;
+                        // Optimize the newly adopted else_block with current environment
+                        optimize_stmt(stmt_list->children[i], env, changed);
+                    } else {
+                        // No else branch: remove entire if statement
+                        freeAST(stmt);
+                        for (int k = i; k < stmt_list->child_count - 1; k++) {
+                            stmt_list->children[k] = stmt_list->children[k + 1];
+                        }
+                        stmt_list->child_count--;
+                        i--;
+                        *changed = true;
+                        continue;
+                    }
+                }
+            }
+        }
+
+        // 4. Dead code elimination after an exit statement (return or guaranteed-exit if-else)
+        if (stmt_guarantees_exit(stmt_list->children[i])) {
+            if (i + 1 < stmt_list->child_count) {
+                for (int k = i + 1; k < stmt_list->child_count; k++) {
+                    freeAST(stmt_list->children[k]);
+                }
+                stmt_list->child_count = i + 1;
+                *changed = true;
+            }
+            break; // No further statements are reachable in this block
+        }
+    }
+}
+
 // Optimizes a block or list of statements
 static void optimize_block(Node* node, ConstEnv* env, bool* changed) {
     if (!node) return;
     if (node->type == BLOCK_NODE) {
         if (node->child_count > 1 && node->children[1]->type == STATEMENT_LIST_NODE) {
-            optimize_stmt(node->children[1], env, changed);
+            optimize_statement_list(node->children[1], env, changed);
         } else {
             for (int i = 0; i < node->child_count; i++) {
                 optimize_stmt(node->children[i], env, changed);
             }
         }
     } else if (node->type == STATEMENT_LIST_NODE) {
-        for (int i = 0; i < node->child_count; i++) {
-            optimize_stmt(node->children[i], env, changed);
-        }
+        optimize_statement_list(node, env, changed);
     } else {
         optimize_stmt(node, env, changed);
     }
