@@ -276,6 +276,42 @@ static void replace_with_bool_literal(Node* node, bool val) {
     node->symbol = NULL;
 }
 
+// Checks if an expression tree contains function calls (side effects)
+static bool has_side_effects(Node* node) {
+    if (!node) return false;
+    if (node->type == CALL_NODE) return true;
+    for (int i = 0; i < node->child_count; i++) {
+        if (has_side_effects(node->children[i])) return true;
+    }
+    return false;
+}
+
+// Replaces a binary operation node in-place with one of its children (0 for left, 1 for right)
+static void replace_node_with_child(Node* parent, int keep_child_index) {
+    if (!parent || parent->child_count < 2) return;
+    int discard_child_index = 1 - keep_child_index;
+    Node* keep = parent->children[keep_child_index];
+    Node* discard = parent->children[discard_child_index];
+
+    // Free the discarded child subtree
+    freeAST(discard);
+
+    // Free parent's own value and children array
+    if (parent->value) free(parent->value);
+    free(parent->children);
+
+    // Adopt keep child's properties into parent
+    parent->type = keep->type;
+    parent->value = keep->value;
+    parent->symbol = keep->symbol;
+    parent->eval_type = keep->eval_type;
+    parent->children = keep->children;
+    parent->child_count = keep->child_count;
+
+    // Free only the wrapper struct of keep
+    free(keep);
+}
+
 // Extracts a constant value from a LITERAL_NODE
 static bool get_const_val(Node* node, ConstVal* out) {
     if (!node || node->type != LITERAL_NODE || !node->value) return false;
@@ -388,21 +424,50 @@ static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
         if (strcmp(op, "&&") == 0) {
             fold_expr(node->children[0], env, changed);
             ConstVal left_val;
-            if (get_const_val(node->children[0], &left_val) && left_val.type == TYPE_BOOLEAN) {
-                if (!left_val.val.bval) {
-                    // false && ... is always false
-                    replace_with_bool_literal(node, false);
-                    *changed = true;
-                    return;
-                }
+            bool left_is_const = get_const_val(node->children[0], &left_val) && left_val.type == TYPE_BOOLEAN;
+
+            // 1. false && ... -> false
+            if (left_is_const && !left_val.val.bval) {
+                replace_with_bool_literal(node, false);
+                *changed = true;
+                return;
+            }
+
+            // 2. true && expr -> expr
+            if (left_is_const && left_val.val.bval) {
+                fold_expr(node->children[1], env, changed);
+                replace_node_with_child(node, 1);
+                *changed = true;
+                fold_expr(node, env, changed);
+                return;
             }
 
             fold_expr(node->children[1], env, changed);
             ConstVal right_val;
-            if (get_const_val(node->children[0], &left_val) && get_const_val(node->children[1], &right_val)) {
+            bool right_is_const = get_const_val(node->children[1], &right_val) && right_val.type == TYPE_BOOLEAN;
+
+            // 3. Both are constants
+            if (left_is_const && right_is_const) {
                 replace_with_bool_literal(node, left_val.val.bval && right_val.val.bval);
                 *changed = true;
+                return;
             }
+
+            // 4. expr && true -> expr
+            if (right_is_const && right_val.val.bval) {
+                replace_node_with_child(node, 0);
+                *changed = true;
+                fold_expr(node, env, changed);
+                return;
+            }
+
+            // 5. expr && false -> false (only if expr has no side effects)
+            if (right_is_const && !right_val.val.bval && !has_side_effects(node->children[0])) {
+                replace_with_bool_literal(node, false);
+                *changed = true;
+                return;
+            }
+
             return;
         }
 
@@ -410,21 +475,50 @@ static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
         if (strcmp(op, "||") == 0) {
             fold_expr(node->children[0], env, changed);
             ConstVal left_val;
-            if (get_const_val(node->children[0], &left_val) && left_val.type == TYPE_BOOLEAN) {
-                if (left_val.val.bval) {
-                    // true || ... is always true
-                    replace_with_bool_literal(node, true);
-                    *changed = true;
-                    return;
-                }
+            bool left_is_const = get_const_val(node->children[0], &left_val) && left_val.type == TYPE_BOOLEAN;
+
+            // 1. true || ... -> true
+            if (left_is_const && left_val.val.bval) {
+                replace_with_bool_literal(node, true);
+                *changed = true;
+                return;
+            }
+
+            // 2. false || expr -> expr
+            if (left_is_const && !left_val.val.bval) {
+                fold_expr(node->children[1], env, changed);
+                replace_node_with_child(node, 1);
+                *changed = true;
+                fold_expr(node, env, changed);
+                return;
             }
 
             fold_expr(node->children[1], env, changed);
             ConstVal right_val;
-            if (get_const_val(node->children[0], &left_val) && get_const_val(node->children[1], &right_val)) {
+            bool right_is_const = get_const_val(node->children[1], &right_val) && right_val.type == TYPE_BOOLEAN;
+
+            // 3. Both are constants
+            if (left_is_const && right_is_const) {
                 replace_with_bool_literal(node, left_val.val.bval || right_val.val.bval);
                 *changed = true;
+                return;
             }
+
+            // 4. expr || false -> expr
+            if (right_is_const && !right_val.val.bval) {
+                replace_node_with_child(node, 0);
+                *changed = true;
+                fold_expr(node, env, changed);
+                return;
+            }
+
+            // 5. expr || true -> true (only if expr has no side effects)
+            if (right_is_const && right_val.val.bval && !has_side_effects(node->children[0])) {
+                replace_with_bool_literal(node, true);
+                *changed = true;
+                return;
+            }
+
             return;
         }
 

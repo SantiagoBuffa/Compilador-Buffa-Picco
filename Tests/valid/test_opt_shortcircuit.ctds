@@ -1,0 +1,44 @@
+// Test para validar la optimización completa de cortocircuito lógico
+int counter;
+
+boolean sideEffect() {
+    counter = counter + 1;
+    return true;
+}
+
+boolean testNeutrals(boolean x) {
+    boolean r1, r2, r3, r4;
+    // Elementos neutros
+    r1 = true && x;     // Debe reducirse a x
+    r2 = x && true;     // Debe reducirse a x
+    r3 = false || x;    // Debe reducirse a x
+    r4 = x || false;    // Debe reducirse a x
+    return r1 && r2 && r3 && r4;
+}
+
+boolean testAbsorbersPure(boolean x) {
+    boolean r1, r2;
+    // Expresiones puras con absorbente a la derecha
+    r1 = x && false;    // Debe reducirse a false
+    r2 = x || true;     // Debe reducirse a true
+    return r1 || r2;
+}
+
+boolean testPreserveSideEffects() {
+    boolean r;
+    // Debe preservar la llamada a sideEffect() porque está a la izquierda
+    r = sideEffect() && false;
+    return r;
+}
+
+void main() {
+    boolean res1, res2, res3;
+    counter = 0;
+
+    res1 = testNeutrals(true);
+    res2 = testAbsorbersPure(false);
+    res3 = testPreserveSideEffects();
+
+    // counter debe ser 1 debido a que sideEffect() fue ejecutado
+    return;
+}

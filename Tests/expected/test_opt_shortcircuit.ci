@@ -1,0 +1,67 @@
+global counter
+func begin sideEffect
+    t0 = 1
+    t1 = counter + t0
+    counter = t1
+    t2 = 1
+    return t2
+func end sideEffect
+
+func begin testNeutrals
+    recv_param x_1
+    r1_2 = x_1
+    r2_3 = x_1
+    r3_4 = x_1
+    r4_5 = x_1
+    t5 = r1_2
+    if_false t5 goto L2
+    t5 = r2_3
+L2:
+    t4 = t5
+    if_false t4 goto L1
+    t4 = r3_4
+L1:
+    t3 = t4
+    if_false t3 goto L0
+    t3 = r4_5
+L0:
+    return t3
+func end testNeutrals
+
+func begin testAbsorbersPure
+    recv_param x_6
+    t6 = 0
+    r1_7 = t6
+    t7 = 1
+    r2_8 = t7
+    t8 = 1
+    return t8
+func end testAbsorbersPure
+
+func begin testPreserveSideEffects
+    t10 = call sideEffect, 0
+    t9 = t10
+    if_false t9 goto L3
+    t11 = 0
+    t9 = t11
+L3:
+    r_9 = t9
+    return r_9
+func end testPreserveSideEffects
+
+func begin main
+    t12 = 0
+    counter = t12
+    t13 = 1
+    param t13
+    t14 = call testNeutrals, 1
+    res1_10 = t14
+    t15 = 0
+    param t15
+    t16 = call testAbsorbersPure, 1
+    res2_11 = t16
+    t17 = call testPreserveSideEffects, 0
+    res3_12 = t17
+    return
+func end main
+
