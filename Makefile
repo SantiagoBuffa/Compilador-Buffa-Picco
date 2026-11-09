@@ -12,6 +12,8 @@ OBJS = $(BUILD_DIR)/estructuras.o \
        $(BUILD_DIR)/tac.o \
        $(BUILD_DIR)/codegen.o \
        $(BUILD_DIR)/asm.o \
+       $(BUILD_DIR)/const_env.o \
+       $(BUILD_DIR)/ast_opt_utils.o \
        $(BUILD_DIR)/ast_optimizer.o \
        $(BUILD_DIR)/parser.tab.o \
        $(BUILD_DIR)/lex.yy.o
