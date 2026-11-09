@@ -1,0 +1,107 @@
+global sideEffectVal
+func begin sideEffect
+    t0 = 1
+    t1 = sideEffectVal + t0
+    sideEffectVal = t1
+    t2 = 10
+    return t2
+func end sideEffect
+
+func begin testMulByTwo
+    recv_param x_1
+    t3 = x_1 + x_1
+    a_2 = t3
+    t4 = x_1 + x_1
+    b_3 = t4
+    t5 = a_2 + b_3
+    return t5
+func end testMulByTwo
+
+func begin testCancelMulDivTwo
+    recv_param x_4
+    r1_5 = x_4
+    r2_6 = x_4
+    r3_7 = x_4
+    t6 = r1_5 + r2_6
+    t7 = t6 + r3_7
+    return t7
+func end testCancelMulDivTwo
+
+func begin testCancelMulDivGeneral
+    recv_param x_8
+    r1_9 = x_8
+    r2_10 = x_8
+    t8 = r1_9 + r2_10
+    return t8
+func end testCancelMulDivGeneral
+
+func begin testAlgebraicIdentities
+    recv_param x_11
+    r1_12 = x_11
+    r2_13 = x_11
+    t9 = 0
+    r3_14 = t9
+    t10 = 0
+    r4_15 = t10
+    r5_16 = x_11
+    t11 = 0
+    r6_17 = t11
+    r7_18 = x_11
+    r8_19 = x_11
+    r9_20 = x_11
+    t12 = 0
+    r10_21 = t12
+    t13 = r1_12 + r2_13
+    t14 = t13 + r5_16
+    t15 = t14 + r7_18
+    t16 = t15 + r8_19
+    t17 = t16 + r9_20
+    return t17
+func end testAlgebraicIdentities
+
+func begin testFloatIdentities
+    recv_param f_22
+    r1_23 = f_22
+    r2_24 = f_22
+    r3_25 = f_22
+    t18 = r1_23 + r2_24
+    t19 = t18 + r3_25
+    return t19
+func end testFloatIdentities
+
+func begin testSideEffects
+    t20 = 0
+    sideEffectVal = t20
+    t21 = call sideEffect, 0
+    t22 = 0
+    t23 = t21 * t22
+    res_26 = t23
+    return sideEffectVal
+func end testSideEffects
+
+func begin main
+    t24 = 10
+    param t24
+    t25 = call testMulByTwo, 1
+    r1_27 = t25
+    t26 = 15
+    param t26
+    t27 = call testCancelMulDivTwo, 1
+    r2_28 = t27
+    t28 = 20
+    param t28
+    t29 = call testCancelMulDivGeneral, 1
+    r3_29 = t29
+    t30 = 25
+    param t30
+    t31 = call testAlgebraicIdentities, 1
+    r4_30 = t31
+    t32 = 3.14
+    param t32
+    t33 = call testFloatIdentities, 1
+    rf_31 = t33
+    t34 = call testSideEffects, 0
+    r5_32 = t34
+    return
+func end main
+

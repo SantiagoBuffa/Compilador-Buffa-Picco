@@ -1,0 +1,102 @@
+// Test suite for strength reduction (* 2 -> +), inverse pattern cancellation ((x * 2) / 2 -> x),
+// and algebraic identity simplifications (neutral and absorbing elements for 0 and 1).
+
+int sideEffectVal;
+
+int sideEffect() {
+    sideEffectVal = sideEffectVal + 1;
+    return 10;
+}
+
+// 1. Strength reduction of multiplication by two
+int testMulByTwo(int x) {
+    int a;
+    int b;
+    a = x * 2; // Should become x + x
+    b = 2 * x; // Should become x + x
+    return a + b;
+}
+
+// 2. Cancellation of multiplying/duplicating and then dividing by two
+int testCancelMulDivTwo(int x) {
+    int r1;
+    int r2;
+    int r3;
+    r1 = (x * 2) / 2; // Should simplify directly to x
+    r2 = (2 * x) / 2; // Should simplify directly to x
+    r3 = (x + x) / 2; // Should simplify directly to x
+    return r1 + r2 + r3;
+}
+
+// 3. General cancellation of (expr * C) / C
+int testCancelMulDivGeneral(int x) {
+    int r1;
+    int r2;
+    r1 = (x * 5) / 5; // Should simplify directly to x
+    r2 = (7 * x) / 7; // Should simplify directly to x
+    return r1 + r2;
+}
+
+// 4. Algebraic identities with 0 and 1
+int testAlgebraicIdentities(int x) {
+    int r1;
+    int r2;
+    int r3;
+    int r4;
+    int r5;
+    int r6;
+    int r7;
+    int r8;
+    int r9;
+    int r10;
+
+    r1 = x * 1;  // Should simplify to x
+    r2 = 1 * x;  // Should simplify to x
+    r3 = x * 0;  // Should simplify to 0
+    r4 = 0 * x;  // Should simplify to 0
+    r5 = x / 1;  // Should simplify to x
+    r6 = 0 / x;  // Should simplify to 0
+    r7 = x + 0;  // Should simplify to x
+    r8 = 0 + x;  // Should simplify to x
+    r9 = x - 0;  // Should simplify to x
+    r10 = x - x; // Should simplify to 0
+
+    return r1 + r2 + r3 + r4 + r5 + r6 + r7 + r8 + r9 + r10;
+}
+
+// 5. Floating point algebraic identities
+float testFloatIdentities(float f) {
+    float r1;
+    float r2;
+    float r3;
+    r1 = f * 1.0; // Should simplify to f
+    r2 = f + 0.0; // Should simplify to f
+    r3 = f - 0.0; // Should simplify to f
+    return r1 + r2 + r3;
+}
+
+// 6. Side effects must be preserved even with absorbing 0
+int testSideEffects() {
+    int res;
+    sideEffectVal = 0;
+    res = sideEffect() * 0; // sideEffect() must still be called
+    return sideEffectVal;
+}
+
+void main() {
+    int r1;
+    int r2;
+    int r3;
+    int r4;
+    float rf;
+    int r5;
+
+    r1 = testMulByTwo(10);
+    r2 = testCancelMulDivTwo(15);
+    r3 = testCancelMulDivGeneral(20);
+    r4 = testAlgebraicIdentities(25);
+    rf = testFloatIdentities(3.14);
+    r5 = testSideEffects();
+
+    return;
+}

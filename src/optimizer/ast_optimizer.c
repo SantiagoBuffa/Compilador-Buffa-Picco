@@ -349,6 +349,68 @@ static const char* get_node_var_name(Node* id_node) {
     return id_node->value;
 }
 
+// Creates a deep copy of an AST subtree
+static Node* deep_copy_ast(Node* root) {
+    if (!root) return NULL;
+    Node* copy = (Node*)malloc(sizeof(Node));
+    copy->type = root->type;
+    copy->value = root->value ? strdup(root->value) : NULL;
+    copy->symbol = root->symbol;
+    copy->eval_type = root->eval_type;
+    copy->child_count = root->child_count;
+    if (root->child_count > 0) {
+        copy->children = (Node**)malloc(root->child_count * sizeof(Node*));
+        for (int i = 0; i < root->child_count; i++) {
+            copy->children[i] = deep_copy_ast(root->children[i]);
+        }
+    } else {
+        copy->children = NULL;
+    }
+    return copy;
+}
+
+// Checks if two AST nodes represent the same variable or literal expression
+static bool are_ast_nodes_equal(Node* a, Node* b) {
+    if (!a || !b) return false;
+    if (a->type != b->type) return false;
+    if (a->type == ID_NODE) {
+        const char* name_a = get_node_var_name(a);
+        const char* name_b = get_node_var_name(b);
+        return (name_a && name_b && strcmp(name_a, name_b) == 0);
+    }
+    if (a->type == LITERAL_NODE) {
+        return (a->value && b->value && strcmp(a->value, b->value) == 0);
+    }
+    if (a->type == OPERATION_NODE) {
+        if (!a->value || !b->value || strcmp(a->value, b->value) != 0) return false;
+        if (a->child_count != b->child_count) return false;
+        for (int i = 0; i < a->child_count; i++) {
+            if (!are_ast_nodes_equal(a->children[i], b->children[i])) return false;
+        }
+        return true;
+    }
+    return false;
+}
+
+// Replaces an AST node in-place with an arbitrary replacement subtree, freeing the old children
+static void replace_node_with_subtree(Node* parent, Node* replacement) {
+    if (!parent || !replacement) return;
+    Node* keep = deep_copy_ast(replacement);
+    for (int i = 0; i < parent->child_count; i++) {
+        freeAST(parent->children[i]);
+    }
+    if (parent->value) free(parent->value);
+    free(parent->children);
+
+    parent->type = keep->type;
+    parent->value = keep->value;
+    parent->symbol = keep->symbol;
+    parent->eval_type = keep->eval_type;
+    parent->children = keep->children;
+    parent->child_count = keep->child_count;
+    free(keep);
+}
+
 // Forward declarations
 static void fold_expr(Node* node, ConstEnv* env, bool* changed);
 static void optimize_stmt(Node* node, ConstEnv* env, bool* changed);
@@ -529,96 +591,273 @@ static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
         fold_expr(node->children[1], env, changed);
 
         ConstVal l, r;
-        if (!get_const_val(node->children[0], &l) || !get_const_val(node->children[1], &r)) {
-            return;
-        }
+        bool has_l = get_const_val(node->children[0], &l);
+        bool has_r = get_const_val(node->children[1], &r);
 
-        // Arithmetic operators
-        if (strcmp(op, "+") == 0 || strcmp(op, "-") == 0 ||
-            strcmp(op, "*") == 0 || strcmp(op, "/") == 0 || strcmp(op, "%") == 0) {
+        // 1. If BOTH operands are constants, perform constant folding
+        if (has_l && has_r) {
+            // Arithmetic operators
+            if (strcmp(op, "+") == 0 || strcmp(op, "-") == 0 ||
+                strcmp(op, "*") == 0 || strcmp(op, "/") == 0 || strcmp(op, "%") == 0) {
 
                 // If both operands are integers, perform integer arithmetic
-            if (l.type == TYPE_INT && r.type == TYPE_INT) {
-                if (strcmp(op, "+") == 0) {
-                    replace_with_int_literal(node, l.val.ival + r.val.ival);
-                    *changed = true;
-                } else if (strcmp(op, "-") == 0) {
-                    replace_with_int_literal(node, l.val.ival - r.val.ival);
-                    *changed = true;
-                } else if (strcmp(op, "*") == 0) {
-                    replace_with_int_literal(node, l.val.ival * r.val.ival);
-                    *changed = true;
-                } else if (strcmp(op, "/") == 0) {
-                    if (r.val.ival != 0) {
-                        replace_with_int_literal(node, l.val.ival / r.val.ival);
+                if (l.type == TYPE_INT && r.type == TYPE_INT) {
+                    if (strcmp(op, "+") == 0) {
+                        replace_with_int_literal(node, l.val.ival + r.val.ival);
                         *changed = true;
-                    }
-                } else if (strcmp(op, "%") == 0) {
-                    if (r.val.ival != 0) {
-                        replace_with_int_literal(node, l.val.ival % r.val.ival);
+                    } else if (strcmp(op, "-") == 0) {
+                        replace_with_int_literal(node, l.val.ival - r.val.ival);
                         *changed = true;
+                    } else if (strcmp(op, "*") == 0) {
+                        replace_with_int_literal(node, l.val.ival * r.val.ival);
+                        *changed = true;
+                    } else if (strcmp(op, "/") == 0) {
+                        if (r.val.ival != 0) {
+                            replace_with_int_literal(node, l.val.ival / r.val.ival);
+                            *changed = true;
+                        }
+                    } else if (strcmp(op, "%") == 0) {
+                        if (r.val.ival != 0) {
+                            replace_with_int_literal(node, l.val.ival % r.val.ival);
+                            *changed = true;
+                        }
                     }
-                }
                 // If either operand is a float, perform floating-point arithmetic
-            } else if (l.type == TYPE_FLOAT || r.type == TYPE_FLOAT) {
-                double lf = (l.type == TYPE_FLOAT) ? l.val.fval : (double)l.val.ival;
-                double rf = (r.type == TYPE_FLOAT) ? r.val.fval : (double)r.val.ival;
+                } else if (l.type == TYPE_FLOAT || r.type == TYPE_FLOAT) {
+                    double lf = (l.type == TYPE_FLOAT) ? l.val.fval : (double)l.val.ival;
+                    double rf = (r.type == TYPE_FLOAT) ? r.val.fval : (double)r.val.ival;
 
-                if (strcmp(op, "+") == 0) {
-                    replace_with_float_literal(node, lf + rf);
-                    *changed = true;
-                } else if (strcmp(op, "-") == 0) {
-                    replace_with_float_literal(node, lf - rf);
-                    *changed = true;
-                } else if (strcmp(op, "*") == 0) {
-                    replace_with_float_literal(node, lf * rf);
-                    *changed = true;
-                } else if (strcmp(op, "/") == 0) {
-                    if (rf != 0.0) {
-                        replace_with_float_literal(node, lf / rf);
+                    if (strcmp(op, "+") == 0) {
+                        replace_with_float_literal(node, lf + rf);
                         *changed = true;
+                    } else if (strcmp(op, "-") == 0) {
+                        replace_with_float_literal(node, lf - rf);
+                        *changed = true;
+                    } else if (strcmp(op, "*") == 0) {
+                        replace_with_float_literal(node, lf * rf);
+                        *changed = true;
+                    } else if (strcmp(op, "/") == 0) {
+                        if (rf != 0.0) {
+                            replace_with_float_literal(node, lf / rf);
+                            *changed = true;
+                        }
+                    }
+                }
+                return;
+            }
+
+            // Relational operators
+            if (strcmp(op, "<") == 0) {
+                if (l.type == TYPE_FLOAT || r.type == TYPE_FLOAT) {
+                    double lf = (l.type == TYPE_FLOAT) ? l.val.fval : (double)l.val.ival;
+                    double rf = (r.type == TYPE_FLOAT) ? r.val.fval : (double)r.val.ival;
+                    replace_with_bool_literal(node, lf < rf);
+                } else {
+                    replace_with_bool_literal(node, l.val.ival < r.val.ival);
+                }
+                *changed = true;
+                return;
+            }
+
+            if (strcmp(op, ">") == 0) {
+                if (l.type == TYPE_FLOAT || r.type == TYPE_FLOAT) {
+                    double lf = (l.type == TYPE_FLOAT) ? l.val.fval : (double)l.val.ival;
+                    double rf = (r.type == TYPE_FLOAT) ? r.val.fval : (double)r.val.ival;
+                    replace_with_bool_literal(node, lf > rf);
+                } else {
+                    replace_with_bool_literal(node, l.val.ival > r.val.ival);
+                }
+                *changed = true;
+                return;
+            }
+
+            if (strcmp(op, "==") == 0) {
+                if (l.type == TYPE_BOOLEAN && r.type == TYPE_BOOLEAN) {
+                    replace_with_bool_literal(node, l.val.bval == r.val.bval);
+                } else if (l.type == TYPE_FLOAT || r.type == TYPE_FLOAT) {
+                    double lf = (l.type == TYPE_FLOAT) ? l.val.fval : (double)l.val.ival;
+                    double rf = (r.type == TYPE_FLOAT) ? r.val.fval : (double)r.val.ival;
+                    replace_with_bool_literal(node, lf == rf);
+                } else {
+                    replace_with_bool_literal(node, l.val.ival == r.val.ival);
+                }
+                *changed = true;
+                return;
+            }
+        }
+
+        // 2. Algebraic simplifications and strength reduction (when at least one child is not a constant)
+
+        // Operator: Multiplication (*)
+        if (strcmp(op, "*") == 0) {
+            // A. Absorbing element: expr * 0 or 0 * expr -> 0 (only if expr has no side effects)
+            if (has_r && ((r.type == TYPE_INT && r.val.ival == 0) || (r.type == TYPE_FLOAT && r.val.fval == 0.0))) {
+                if (!has_side_effects(node->children[0])) {
+                    if (r.type == TYPE_FLOAT || node->children[0]->eval_type == TYPE_FLOAT) {
+                        replace_with_float_literal(node, 0.0);
+                    } else {
+                        replace_with_int_literal(node, 0);
+                    }
+                    *changed = true;
+                    return;
+                }
+            }
+            if (has_l && ((l.type == TYPE_INT && l.val.ival == 0) || (l.type == TYPE_FLOAT && l.val.fval == 0.0))) {
+                if (!has_side_effects(node->children[1])) {
+                    if (l.type == TYPE_FLOAT || node->children[1]->eval_type == TYPE_FLOAT) {
+                        replace_with_float_literal(node, 0.0);
+                    } else {
+                        replace_with_int_literal(node, 0);
+                    }
+                    *changed = true;
+                    return;
+                }
+            }
+
+            // B. Neutral element: expr * 1 -> expr, 1 * expr -> expr
+            if (has_r && ((r.type == TYPE_INT && r.val.ival == 1) || (r.type == TYPE_FLOAT && r.val.fval == 1.0))) {
+                replace_node_with_child(node, 0);
+                *changed = true;
+                fold_expr(node, env, changed);
+                return;
+            }
+            if (has_l && ((l.type == TYPE_INT && l.val.ival == 1) || (l.type == TYPE_FLOAT && l.val.fval == 1.0))) {
+                replace_node_with_child(node, 1);
+                *changed = true;
+                fold_expr(node, env, changed);
+                return;
+            }
+
+            // C. Strength reduction: x * 2 or 2 * x -> x + x (for ID_NODE or pure expressions)
+            if (has_r && r.type == TYPE_INT && r.val.ival == 2) {
+                Node* left = node->children[0];
+                if (!has_side_effects(left) && left->type == ID_NODE) {
+                    freeAST(node->children[1]);
+                    node->children[1] = deep_copy_ast(left);
+                    free(node->value);
+                    node->value = strdup("+");
+                    *changed = true;
+                    return;
+                }
+            }
+            if (has_l && l.type == TYPE_INT && l.val.ival == 2) {
+                Node* right = node->children[1];
+                if (!has_side_effects(right) && right->type == ID_NODE) {
+                    freeAST(node->children[0]);
+                    node->children[0] = deep_copy_ast(right);
+                    free(node->value);
+                    node->value = strdup("+");
+                    *changed = true;
+                    return;
+                }
+            }
+
+            return;
+        }
+
+        // Operator: Division (/)
+        if (strcmp(op, "/") == 0) {
+            // Cannot optimize if divisor is 0 (preserve potential division by zero error)
+            if (has_r && ((r.type == TYPE_INT && r.val.ival == 0) || (r.type == TYPE_FLOAT && r.val.fval == 0.0))) {
+                return;
+            }
+
+            // A. Zero dividend: 0 / expr -> 0 (only if expr has no side effects)
+            if (has_l && ((l.type == TYPE_INT && l.val.ival == 0) || (l.type == TYPE_FLOAT && l.val.fval == 0.0))) {
+                if (!has_side_effects(node->children[1])) {
+                    if (l.type == TYPE_FLOAT || node->children[1]->eval_type == TYPE_FLOAT) {
+                        replace_with_float_literal(node, 0.0);
+                    } else {
+                        replace_with_int_literal(node, 0);
+                    }
+                    *changed = true;
+                    return;
+                }
+            }
+
+            // B. Neutral element: expr / 1 -> expr
+            if (has_r && ((r.type == TYPE_INT && r.val.ival == 1) || (r.type == TYPE_FLOAT && r.val.fval == 1.0))) {
+                replace_node_with_child(node, 0);
+                *changed = true;
+                fold_expr(node, env, changed);
+                return;
+            }
+
+            // C. Pattern cancellation: (expr * C) / C -> expr or (C * expr) / C -> expr
+            if (has_r && r.type == TYPE_INT && r.val.ival != 0) {
+                Node* left = node->children[0];
+                if (left && left->type == OPERATION_NODE && strcmp(left->value, "*") == 0 && left->child_count == 2) {
+                    ConstVal c0, c1;
+                    bool c0_is_const = get_const_val(left->children[0], &c0);
+                    bool c1_is_const = get_const_val(left->children[1], &c1);
+
+                    if (c0_is_const && c0.type == TYPE_INT && c0.val.ival == r.val.ival) {
+                        replace_node_with_subtree(node, left->children[1]);
+                        *changed = true;
+                        fold_expr(node, env, changed);
+                        return;
+                    }
+                    if (c1_is_const && c1.type == TYPE_INT && c1.val.ival == r.val.ival) {
+                        replace_node_with_subtree(node, left->children[0]);
+                        *changed = true;
+                        fold_expr(node, env, changed);
+                        return;
+                    }
+                }
+
+                // D. Pattern cancellation: (x + x) / 2 -> x
+                if (r.val.ival == 2 && left && left->type == OPERATION_NODE &&
+                    strcmp(left->value, "+") == 0 && left->child_count == 2) {
+                    if (are_ast_nodes_equal(left->children[0], left->children[1])) {
+                        replace_node_with_subtree(node, left->children[0]);
+                        *changed = true;
+                        fold_expr(node, env, changed);
+                        return;
                     }
                 }
             }
+
             return;
         }
 
-        // Relational operators
-        if (strcmp(op, "<") == 0) {
-            if (l.type == TYPE_FLOAT || r.type == TYPE_FLOAT) {
-                double lf = (l.type == TYPE_FLOAT) ? l.val.fval : (double)l.val.ival;
-                double rf = (r.type == TYPE_FLOAT) ? r.val.fval : (double)r.val.ival;
-                replace_with_bool_literal(node, lf < rf);
-            } else {
-                replace_with_bool_literal(node, l.val.ival < r.val.ival);
+        // Operator: Addition (+)
+        if (strcmp(op, "+") == 0) {
+            // Neutral element: expr + 0 -> expr
+            if (has_r && ((r.type == TYPE_INT && r.val.ival == 0) || (r.type == TYPE_FLOAT && r.val.fval == 0.0))) {
+                replace_node_with_child(node, 0);
+                *changed = true;
+                fold_expr(node, env, changed);
+                return;
             }
-            *changed = true;
+            // Neutral element: 0 + expr -> expr
+            if (has_l && ((l.type == TYPE_INT && l.val.ival == 0) || (l.type == TYPE_FLOAT && l.val.fval == 0.0))) {
+                replace_node_with_child(node, 1);
+                *changed = true;
+                fold_expr(node, env, changed);
+                return;
+            }
             return;
         }
 
-        if (strcmp(op, ">") == 0) {
-            if (l.type == TYPE_FLOAT || r.type == TYPE_FLOAT) {
-                double lf = (l.type == TYPE_FLOAT) ? l.val.fval : (double)l.val.ival;
-                double rf = (r.type == TYPE_FLOAT) ? r.val.fval : (double)r.val.ival;
-                replace_with_bool_literal(node, lf > rf);
-            } else {
-                replace_with_bool_literal(node, l.val.ival > r.val.ival);
+        // Operator: Subtraction (-)
+        if (strcmp(op, "-") == 0) {
+            // Neutral element: expr - 0 -> expr
+            if (has_r && ((r.type == TYPE_INT && r.val.ival == 0) || (r.type == TYPE_FLOAT && r.val.fval == 0.0))) {
+                replace_node_with_child(node, 0);
+                *changed = true;
+                fold_expr(node, env, changed);
+                return;
             }
-            *changed = true;
-            return;
-        }
-
-        if (strcmp(op, "==") == 0) {
-            if (l.type == TYPE_BOOLEAN && r.type == TYPE_BOOLEAN) {
-                replace_with_bool_literal(node, l.val.bval == r.val.bval);
-            } else if (l.type == TYPE_FLOAT || r.type == TYPE_FLOAT) {
-                double lf = (l.type == TYPE_FLOAT) ? l.val.fval : (double)l.val.ival;
-                double rf = (r.type == TYPE_FLOAT) ? r.val.fval : (double)r.val.ival;
-                replace_with_bool_literal(node, lf == rf);
-            } else {
-                replace_with_bool_literal(node, l.val.ival == r.val.ival);
+            // Identity: x - x -> 0 (only if x has no side effects)
+            if (are_ast_nodes_equal(node->children[0], node->children[1]) && !has_side_effects(node->children[0])) {
+                if (node->children[0]->eval_type == TYPE_FLOAT) {
+                    replace_with_float_literal(node, 0.0);
+                } else {
+                    replace_with_int_literal(node, 0);
+                }
+                *changed = true;
+                return;
             }
-            *changed = true;
             return;
         }
     }
