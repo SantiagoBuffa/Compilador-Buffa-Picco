@@ -26,7 +26,10 @@ todo caracter y salto de linea que haya luego de /*, una vez encuentra */, se re
 normal del scanner y retoma su funcionamiento habitual. También permite detectar cuando un comentario
 no fue cerrado apropiadamente.
 
-- problemas conocidos:
+- problemas conocidos: 
+el manejo del rango de los enteros es válido solamente si se escribe un entero fuera de rango en algún programa.
+Si se llega al entero fuera de rango por alguna operación (suma, multiplicación, etc.) no hay nada en ninguna otra parte
+del compilador que lo detecte.
 
 
 1) ETAPA: ANÁLISIS SINTÁCTICO
@@ -366,3 +369,99 @@ Modificamos lo necesario para hacerlo encajar
 que las declaraciones externas vayan primero, agregamos las instrucciones a la creación del arbol AST, etc.)
 Los archivos externos se compilan con -c o --module, el linkeamiento entre un archivo .cdts y sus referencias externas se hace
 con GCC.
+
+5) ETAPA: optimización
+
+- división de trabajo: 50/50
+
+- diseño:
+
+. La optimización del AST ocurre in-place. Es decir, se trabaja sobre el mismo árbol AST generado en la etapa anterior.
+El resultado es el mismo árbol pero modificado por la función de optimizar.
+
+. Decidimos implementar las siguientes optimizaciones:
+
+* Propagación de constantes: reemplazar las referencias a variables por sus valores siempre que sea posible.
+para esto utilizamos un entorno ConstEnv para registrar y actualizar los valores de las variables a medida
+que se recorre el AST.
+
+* Folding de constantes: simplificar expresiones cuando sus operandos son constantes. ej: 5+4-1 -> 8
+
+* Simplificación de expresiones booleanas: Resolver expresiones que contienen booleanos constantes. Ej:
+true v false -> true
+
+* Corto-circuito de expresiones booleanas: && y || no evalúan la rama faltante si su resultado ya es conocido.
+por ejemplo: false && ... , true || ...
+
+* Optimización del flujo de control: Cuando una condición de IF es conocida en tiempo de compilación, se optimiza
+la rama que se ejecutaría, y la que no se ejecutaría se analiza con un entorno clonado así no propaga sus cambios.
+
+
+* Código muerto:
+- Detectar y eliminar los ciclos que nunca se ejecutan (while(false))
+- Detección de condiciones (IF): si se puede conocer durante compilación el resultado de una expresión condicional,
+cortar las ramas que no se ejecuten (o el IF completo si no tiene else y la condición es falsa).
+- Detectar y eliminar las instrucciones que ocurren luego de un RETURN (no se ejecutarán nunca).
+
+* Simplificaciones algebráicas: simplificamos varias operaciones matemáticas para permitir ahorrar sobre todo computos en assembly.
+estas equivalencias son reemplazadas en los nodos del AST cuando se detectan. Es importante destacar que si alguna de las expresiones
+utiliza un llamado a funciones se realiza el manejo de los efectos secundarios.
+
+- x + 0 | 0 + x -> x
+- x - 0 -> x
+- x - x -> 0
+- x * 0 | 0 * x -> 0
+- x * 1 | 1 * x -> x
+- x * 2 | 2 * x -> x + x 
+- x / 1 -> x 
+- 0 / x -> 0
+- (x * C) / C | (C * x) / C -> x 
+- (x + x)/2 -> x (reconocimiento del patrón)
+
+
+. Otras menciones sobre el diseño:
+
+* En las estructuras while, se invalidan las variables que son modificadas adentro de los ciclos, para no realizar 
+sustituciones incorrectas.
+
+* Invalidación de globales: si una función/método modifica una variable global, esta es invalidada en el enviroment
+para no asumir que conserva su valor anterior.
+por ej: si tenemos x = 5 global, al momento de ejecutarse una función, todas las variables globales son marcadas como 
+desconocidas.
+
+* Iteración hasta punto fijo: la optimización de los métodos es un ciclo que ocurre hasta que no haya cambios,
+o se cumpla un máximo planteado de 10 ciclos (puede modificarse).
+
+* Reorganizamos los archivos de optimización. const_env.c contiene las funciones de manejo del enviroment,
+ast_opt_utils.c tiene funciones auxiliares y ast_optimizer.c tiene las principales.
+
+- detalles de implementación:
+
+. Estructuras de datos utilizadas:
+
+* ConstVal: valor de una constante.
+* EnvEntry: representa una entrada al entorno de constantes. Almacena valor, nombre de la variable y un puntero al simbolo.
+* ConstEnv: lista enlazada de EnvEntry.
+Permiten manejar un entorno temporal que resume los valores conocidos de las variables, lo cual permite simplificar
+expresiones aplicando folding en algunos casos. Requiere cuidado con su manejo para no propagar valores que no son utilizados.
+
+. Algoritmos:
+
+* fold_expr: itera recursivamente sobre una expresión. Si encuentra un ID, revisa en el entorno si conoce su valor,
+si conoce el valor, reemplaza el nodo ID por un nodo LITERAL. Si encuentra una operación, optimiza sus operandos, y si
+todos los operandos son conocidos entonces lo resuelve y reemplaza el nodo por el resultado.
+
+* optimize_stmt: optimiza sentencias:
+    - asignaciones: optimiza la expresión del lado derecho y si conoce el valor de la variable la actualiza en el entorno.
+    si no conoce el valor completo todavía, la marca como desconocida.
+    - IF: evalúa la condición y, si es constante, optimiza la rama correspondiente utilizando el entorno principal. 
+    La otra rama se analiza con una copia independiente. Si la condición es desconocida, analiza ambas ramas en entornos separados y luego los combina.
+    - Bucles (while): identifica las variables modificadas dentro del bucle y las marca como desconocidas antes y después de analizarlo, 
+    evitando utilizar valores constantes que podrían dejar de ser válidos.
+    - llamadas a funciones: optimiza sus argumentos e invalida las constantes de las variables globales, ya que la función podría modificarlas.
+    - retornos: optimiza la expresión a retornar si se puede.
+
+
+- problemas conocidos: 
+Limite de iteraciones fijo, da posibilidad de que en un programa lo suficientemente extenso el árbol final no se llegue
+a optimizar al 100%
