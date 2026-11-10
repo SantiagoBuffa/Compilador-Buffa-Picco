@@ -4,7 +4,7 @@ CFLAGS = -Wall -Wextra -std=gnu11 -Wno-unused-function \
 LIBS = -lm
 
 BUILD_DIR = build
-TARGET = compilador_test
+TARGET = c-tds
 
 OBJS = $(BUILD_DIR)/estructuras.o \
        $(BUILD_DIR)/symtab.o \
@@ -24,6 +24,8 @@ all: $(TARGET)
 
 $(TARGET): $(BUILD_DIR) $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $(TARGET) $(LIBS)
+	ln -sf $(TARGET) compilador_test
+	ln -sf $(TARGET) ctds
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
@@ -43,9 +45,12 @@ test: $(TARGET)
 test-asm: $(TARGET)
 	./scripts/run_asm_tests.sh
 
+test-cli: $(TARGET)
+	./scripts/test_cli.sh
+
 clean:
-	rm -rf $(BUILD_DIR) $(TARGET)
+	rm -rf $(BUILD_DIR) $(TARGET) compilador_test ctds
 	rm -f Tests/valid/*.ci Tests/invalid/*.ci Tests/valid/*.s Tests/valid/*.out Tests/invalid/*.s Tests/invalid/*.out
 	rm -f Tests/modules/*.ci Tests/modules/*.s Tests/modules/*.out
 
-.PHONY: all test test-asm clean
+.PHONY: all test test-asm test-cli clean

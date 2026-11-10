@@ -5,6 +5,8 @@
 #include "semantic.h"
 #include "symtab.h"
 
+extern bool debug_mode;
+
 static Symbol* current_method = NULL;
 static int semantic_error_count = 0;
 
@@ -464,8 +466,10 @@ static void traverse(Node* node, bool skip_scope_creation) {
     }
 
     if (is_scope_creator) {
-        printf("--- Closing Scope --- Current state of the table:\n");
-        symtab_print();
+        if (debug_mode) {
+            printf("--- Closing Scope --- Current state of the table:\n");
+            symtab_print();
+        }
         symtab_exit_scope();
     }
     

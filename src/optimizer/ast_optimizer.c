@@ -12,6 +12,9 @@
 
 #define MAX_OPTIMIZATION_PASSES 10
 
+// Currently active optimization configuration
+static OptConfig current_config;
+
 // Forward declarations
 static void fold_expr(Node* node, ConstEnv* env, bool* changed);
 static void optimize_stmt(Node* node, ConstEnv* env, bool* changed);
@@ -25,7 +28,7 @@ static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
     if (!node) return;
 
     // constant propagation: replace ID_NODE with known constant value if available
-    if (node->type == ID_NODE) {
+    if (current_config.constant_folding && node->type == ID_NODE) {
         const char* name = get_node_var_name(node);
         ConstVal cval = env_get(env, name);
         if (cval.is_const) {
@@ -61,14 +64,16 @@ static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
         // Minor optimization: if the operation is unary, fold its single child first
         if (strcmp(op, "- (unary)") == 0) {
             fold_expr(node->children[0], env, changed);
-            ConstVal arg;
-            if (get_const_val(node->children[0], &arg)) {
-                if (arg.type == TYPE_INT) {
-                    replace_with_int_literal(node, -arg.val.ival);
-                    *changed = true;
-                } else if (arg.type == TYPE_FLOAT) {
-                    replace_with_float_literal(node, -arg.val.fval);
-                    *changed = true;
+            if (current_config.constant_folding) {
+                ConstVal arg;
+                if (get_const_val(node->children[0], &arg)) {
+                    if (arg.type == TYPE_INT) {
+                        replace_with_int_literal(node, -arg.val.ival);
+                        *changed = true;
+                    } else if (arg.type == TYPE_FLOAT) {
+                        replace_with_float_literal(node, -arg.val.fval);
+                        *changed = true;
+                    }
                 }
             }
             return;
@@ -77,10 +82,12 @@ static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
         // if !, minimize the child first, then check if it's a boolean constant
         if (strcmp(op, "!") == 0) {
             fold_expr(node->children[0], env, changed);
-            ConstVal arg;
-            if (get_const_val(node->children[0], &arg) && arg.type == TYPE_BOOLEAN) {
-                replace_with_bool_literal(node, !arg.val.bval);
-                *changed = true;
+            if (current_config.constant_folding) {
+                ConstVal arg;
+                if (get_const_val(node->children[0], &arg) && arg.type == TYPE_BOOLEAN) {
+                    replace_with_bool_literal(node, !arg.val.bval);
+                    *changed = true;
+                }
             }
             return;
         }
@@ -91,20 +98,22 @@ static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
             ConstVal left_val;
             bool left_is_const = get_const_val(node->children[0], &left_val) && left_val.type == TYPE_BOOLEAN;
 
-            // 1. false && ... -> false
-            if (left_is_const && !left_val.val.bval) {
-                replace_with_bool_literal(node, false);
-                *changed = true;
-                return;
-            }
+            if (current_config.short_circuit) {
+                // 1. false && ... -> false
+                if (left_is_const && !left_val.val.bval) {
+                    replace_with_bool_literal(node, false);
+                    *changed = true;
+                    return;
+                }
 
-            // 2. true && expr -> expr
-            if (left_is_const && left_val.val.bval) {
-                fold_expr(node->children[1], env, changed);
-                replace_node_with_child(node, 1);
-                *changed = true;
-                fold_expr(node, env, changed);
-                return;
+                // 2. true && expr -> expr
+                if (left_is_const && left_val.val.bval) {
+                    fold_expr(node->children[1], env, changed);
+                    replace_node_with_child(node, 1);
+                    *changed = true;
+                    fold_expr(node, env, changed);
+                    return;
+                }
             }
 
             fold_expr(node->children[1], env, changed);
@@ -112,25 +121,27 @@ static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
             bool right_is_const = get_const_val(node->children[1], &right_val) && right_val.type == TYPE_BOOLEAN;
 
             // 3. Both are constants
-            if (left_is_const && right_is_const) {
+            if ((current_config.constant_folding || current_config.short_circuit) && left_is_const && right_is_const) {
                 replace_with_bool_literal(node, left_val.val.bval && right_val.val.bval);
                 *changed = true;
                 return;
             }
 
-            // 4. expr && true -> expr
-            if (right_is_const && right_val.val.bval) {
-                replace_node_with_child(node, 0);
-                *changed = true;
-                fold_expr(node, env, changed);
-                return;
-            }
+            if (current_config.short_circuit) {
+                // 4. expr && true -> expr
+                if (right_is_const && right_val.val.bval) {
+                    replace_node_with_child(node, 0);
+                    *changed = true;
+                    fold_expr(node, env, changed);
+                    return;
+                }
 
-            // 5. expr && false -> false (only if expr has no side effects)
-            if (right_is_const && !right_val.val.bval && !has_side_effects(node->children[0])) {
-                replace_with_bool_literal(node, false);
-                *changed = true;
-                return;
+                // 5. expr && false -> false (only if expr has no side effects)
+                if (right_is_const && !right_val.val.bval && !has_side_effects(node->children[0])) {
+                    replace_with_bool_literal(node, false);
+                    *changed = true;
+                    return;
+                }
             }
 
             return;
@@ -142,20 +153,22 @@ static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
             ConstVal left_val;
             bool left_is_const = get_const_val(node->children[0], &left_val) && left_val.type == TYPE_BOOLEAN;
 
-            // 1. true || ... -> true
-            if (left_is_const && left_val.val.bval) {
-                replace_with_bool_literal(node, true);
-                *changed = true;
-                return;
-            }
+            if (current_config.short_circuit) {
+                // 1. true || ... -> true
+                if (left_is_const && left_val.val.bval) {
+                    replace_with_bool_literal(node, true);
+                    *changed = true;
+                    return;
+                }
 
-            // 2. false || expr -> expr
-            if (left_is_const && !left_val.val.bval) {
-                fold_expr(node->children[1], env, changed);
-                replace_node_with_child(node, 1);
-                *changed = true;
-                fold_expr(node, env, changed);
-                return;
+                // 2. false || expr -> expr
+                if (left_is_const && !left_val.val.bval) {
+                    fold_expr(node->children[1], env, changed);
+                    replace_node_with_child(node, 1);
+                    *changed = true;
+                    fold_expr(node, env, changed);
+                    return;
+                }
             }
 
             fold_expr(node->children[1], env, changed);
@@ -163,25 +176,27 @@ static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
             bool right_is_const = get_const_val(node->children[1], &right_val) && right_val.type == TYPE_BOOLEAN;
 
             // 3. Both are constants
-            if (left_is_const && right_is_const) {
+            if ((current_config.constant_folding || current_config.short_circuit) && left_is_const && right_is_const) {
                 replace_with_bool_literal(node, left_val.val.bval || right_val.val.bval);
                 *changed = true;
                 return;
             }
 
-            // 4. expr || false -> expr
-            if (right_is_const && !right_val.val.bval) {
-                replace_node_with_child(node, 0);
-                *changed = true;
-                fold_expr(node, env, changed);
-                return;
-            }
+            if (current_config.short_circuit) {
+                // 4. expr || false -> expr
+                if (right_is_const && !right_val.val.bval) {
+                    replace_node_with_child(node, 0);
+                    *changed = true;
+                    fold_expr(node, env, changed);
+                    return;
+                }
 
-            // 5. expr || true -> true (only if expr has no side effects)
-            if (right_is_const && right_val.val.bval && !has_side_effects(node->children[0])) {
-                replace_with_bool_literal(node, true);
-                *changed = true;
-                return;
+                // 5. expr || true -> true (only if expr has no side effects)
+                if (right_is_const && right_val.val.bval && !has_side_effects(node->children[0])) {
+                    replace_with_bool_literal(node, true);
+                    *changed = true;
+                    return;
+                }
             }
 
             return;
@@ -196,7 +211,7 @@ static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
         bool has_r = get_const_val(node->children[1], &r);
 
         // 1. If BOTH operands are constants, perform constant folding
-        if (has_l && has_r) {
+        if (current_config.constant_folding && has_l && has_r) {
             // Arithmetic operators
             if (strcmp(op, "+") == 0 || strcmp(op, "-") == 0 ||
                 strcmp(op, "*") == 0 || strcmp(op, "/") == 0 || strcmp(op, "%") == 0) {
@@ -288,8 +303,8 @@ static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
         }
 
         // 2. Algebraic simplifications and strength reduction (when at least one child is not a constant)
-
-        // Operator: Multiplication (*)
+        if (current_config.algebraic) {
+            // Operator: Multiplication (*)
         if (strcmp(op, "*") == 0) {
             // A. Absorbing element: expr * 0 or 0 * expr -> 0 (only if expr has no side effects)
             if (has_r && ((r.type == TYPE_INT && r.val.ival == 0) || (r.type == TYPE_FLOAT && r.val.fval == 0.0))) {
@@ -463,6 +478,7 @@ static void fold_expr(Node* node, ConstEnv* env, bool* changed) {
         }
     }
 }
+}
 
 // Scans an AST subtree and marks any modified variables as UNKNOWN
 static void collect_assigned_vars(Node* node, ConstEnv* env) {
@@ -493,7 +509,7 @@ static void optimize_stmt(Node* node, ConstEnv* env, bool* changed) {
 
             ConstVal cval;
             const char* var_name = get_node_var_name(id_node);
-            if (get_const_val(expr_node, &cval)) {
+            if (current_config.constant_folding && get_const_val(expr_node, &cval)) {
                 // Coerce constant to destination variable's type if needed
                 DataType target_type = id_node->eval_type;
                 if (id_node->symbol) target_type = id_node->symbol->type;
@@ -544,7 +560,7 @@ static void optimize_stmt(Node* node, ConstEnv* env, bool* changed) {
 
             ConstVal cond_val;
             // if condition is a compile-time constant boolean, we can optimize the branches
-            if (get_const_val(cond_node, &cond_val) && cond_val.type == TYPE_BOOLEAN) {
+            if (current_config.dead_code_elim && get_const_val(cond_node, &cond_val) && cond_val.type == TYPE_BOOLEAN) {
                 // condition is true
                 if (cond_val.val.bval) { 
                     
@@ -668,7 +684,7 @@ static void optimize_statement_list(Node* stmt_list, ConstEnv* env, bool* change
         optimize_stmt(stmt, env, changed);
 
         // 2. Dead loop elimination: while (false)
-        if (stmt->type == WHILE_NODE) {
+        if (current_config.dead_code_elim && stmt->type == WHILE_NODE) {
             ConstVal cond_val;
             if (get_const_val(stmt->children[0], &cond_val) &&
                 cond_val.type == TYPE_BOOLEAN && !cond_val.val.bval) {
@@ -685,7 +701,7 @@ static void optimize_statement_list(Node* stmt_list, ConstEnv* env, bool* change
         }
 
         // 3. Dead conditional elimination: if (true) / if (false)
-        if (stmt->type == IF_NODE) {
+        if (current_config.dead_code_elim && stmt->type == IF_NODE) {
             ConstVal cond_val;
             if (get_const_val(stmt->children[0], &cond_val) && cond_val.type == TYPE_BOOLEAN) {
                 bool has_else = (stmt->child_count > 2);
@@ -733,7 +749,7 @@ static void optimize_statement_list(Node* stmt_list, ConstEnv* env, bool* change
         }
 
         // 4. Dead code elimination after an exit statement (return or guaranteed-exit if-else)
-        if (stmt_guarantees_exit(stmt_list->children[i])) {
+        if (current_config.dead_code_elim && stmt_guarantees_exit(stmt_list->children[i])) {
             if (i + 1 < stmt_list->child_count) {
                 for (int k = i + 1; k < stmt_list->child_count; k++) {
                     freeAST(stmt_list->children[k]);
@@ -784,9 +800,19 @@ static void optimize_method(Node* method_node) {
     }
 }
 
-// Top-level entry point for AST optimization
-Node* optimize_ast(Node* root) {
+// Top-level entry point for AST optimization with explicit configuration
+Node* optimize_ast_with_config(Node* root, OptConfig config) {
     if (!root) return NULL;
+
+    current_config = config;
+
+    // If no optimizations are enabled, return root directly without doing any work
+    if (!current_config.constant_folding &&
+        !current_config.short_circuit &&
+        !current_config.dead_code_elim &&
+        !current_config.algebraic) {
+        return root;
+    }
 
     // Navigate to DECLARATIONS_NODE
     Node* decls = (root->type == PROGRAM_NODE && root->child_count > 0) ? root->children[0] : root;
@@ -800,4 +826,15 @@ Node* optimize_ast(Node* root) {
     }
 
     return root;
+}
+
+// Convenience wrapper that enables all optimizations
+Node* optimize_ast(Node* root) {
+    OptConfig all_opts = {
+        .constant_folding = true,
+        .short_circuit = true,
+        .dead_code_elim = true,
+        .algebraic = true
+    };
+    return optimize_ast_with_config(root, all_opts);
 }
