@@ -367,12 +367,14 @@ int main(int argc, char** argv) {
 
   if (yyparse() == 0) {
       printf("successful parsing.\n\n");
-      printf("=== AST ===\n");
+      printf("=== AST (ORIGINAL) ===\n");
       printAST(ast_root);
       printf("\n=== SEMANTIC ANALYSIS & SYMTAB ===\n");
       int sem_errors = analyze_semantics(ast_root, require_main);
       if (sem_errors == 0 && lexic_error_count == 0) {
           ast_root = optimize_ast(ast_root);
+          printf("\n=== AST (OPTIMIZED) ===\n");
+          printAST(ast_root);
           printf("\n=== INTERMEDIATE CODE (TAC) ===\n");
           TacList *tac = codegen_generate(ast_root);
           tac_print(stdout, tac);
