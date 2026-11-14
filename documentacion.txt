@@ -463,5 +463,5 @@ todos los operandos son conocidos entonces lo resuelve y reemplaza el nodo por e
 
 
 - problemas conocidos: 
-Limite de iteraciones fijo, da posibilidad de que en un programa lo suficientemente extenso el árbol final no se llegue
-a optimizar al 100%
+* Limite de iteraciones fijo, da posibilidad de que en un programa lo suficientemente extenso el árbol final no se llegue a optimizar al 100%.
+* Posibles resultados distintos según la forma de compilar, al compilar sin optimizaciones el comportamiento es el esperado para arquitecturas x86-64, pero al aplicar la optimización de constant folding sobre una suma de enteros se usan el tipo 'int' de C el cual tiene los limites de x86. Podría solucionarse usando 'long long' en vez de 'int'.
